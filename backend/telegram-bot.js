@@ -43,6 +43,20 @@ function setChatMode(chatId, mode) {
   chatModes.set(String(chatId), mode);
 }
 
+function modeFromText(text) {
+  const normalized = String(text || "").trim().toLowerCase();
+
+  if (/^\/logo\b/.test(normalized)) return "logo";
+  if (/^\/transfers\b|^\/transfermarkt\b/.test(normalized)) return "transfermarket";
+  if (/^\/tabelle\b|^\/standings\b/.test(normalized)) return "standings";
+  if (/^\/aufstellung\b|^\/lineup\b/.test(normalized)) return "lineup";
+  if (/^\/budget\b/.test(normalized)) return "budget";
+  if (/^\/kader\b|^\/squad\b/.test(normalized)) return "squad";
+  if (/^\/auto\b/.test(normalized)) return "auto";
+
+  return null;
+}
+
 function buildHelpText() {
   return [
     "ComunioAdvisor Modi:",
@@ -134,7 +148,11 @@ bot.on("photo", async (message) => {
       return;
     }
 
-    const chatMode = getChatMode(message.chat.id);
+    const captionMode = modeFromText(message.caption);
+    const chatMode = captionMode || getChatMode(message.chat.id);
+    if (captionMode) {
+      setChatMode(message.chat.id, captionMode);
+    }
     await bot.sendMessage(message.chat.id, `Screenshot erhalten. Modus: ${modeLabels[chatMode]}. Ich analysiere und fuege es zur Tagesuebersicht hinzu...`);
 
     const photo = message.photo[message.photo.length - 1];
