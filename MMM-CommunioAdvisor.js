@@ -9,6 +9,8 @@ Module.register("MMM-CommunioAdvisor", {
     showLineupImage: true,
     showRumorImage: true,
     showSquadInsights: true,
+    nextMatchdayAt: "",
+    nextMatchdayLabel: "Nächster Spieltag",
     showDebug: false
   },
 
@@ -28,6 +30,12 @@ Module.register("MMM-CommunioAdvisor", {
     setInterval(() => {
       this.getAnalysis();
     }, this.config.updateInterval);
+
+    setInterval(() => {
+      if (this.loaded && !this.error) {
+        this.updateDom(400);
+      }
+    }, 60 * 1000);
   },
 
   getAnalysis() {
@@ -218,11 +226,12 @@ Module.register("MMM-CommunioAdvisor", {
     });
     const budget = data.budgetStatus || {};
     const ownTotalPoints = ownTeam?.totalPoints ?? ownTeam?.points;
+    const focus = this.getMatchdayStatus(data) || this.getFocusStatus(data);
     const items = [
       ["Budget", budget.amount || budget.label || "offen"],
       ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
       ["Punkte", ownTotalPoints != null ? `${ownTotalPoints} P` : "-"],
-      ["Update", data.lastScreenType || data.source?.screenType || "auto"]
+      [focus.label, focus.value]
     ];
 
     items.forEach(([label, value]) => {
@@ -241,6 +250,75 @@ Module.register("MMM-CommunioAdvisor", {
     });
 
     return strip;
+  },
+
+  getFocusStatus(data) {
+    const screenType = data.lastScreenType || data.source?.screenType || "auto";
+    const labels = {
+      squad: { label: "Fokus", value: "Kader-Check" },
+      budget: { label: "Fokus", value: "Kontostand" },
+      standings: { label: "Fokus", value: "Ligadruck" },
+      transfermarket: { label: "Fokus", value: "Transferjagd" },
+      lineup: { label: "Fokus", value: "Startelf" },
+      auto: { label: "Fokus", value: "Analyse" }
+    };
+
+    if (screenType === "squad") {
+      const sellCount = Array.isArray(data.squadInsights?.sell) ? data.squadInsights.sell.length : 0;
+      return { label: "Fokus", value: sellCount ? `${sellCount} Tausch-Ideen` : "Kader-Check" };
+    }
+
+    if (screenType === "transfermarket") {
+      const transferCount = Array.isArray(data.transferTicker) ? data.transferTicker.length : 0;
+      return { label: "Fokus", value: transferCount ? `${transferCount} Marktnews` : "Transferjagd" };
+    }
+
+    if (screenType === "standings") {
+      const ownTeam = (data.standings || []).find((team) => team.isUserClub || team.name === this.config.clubName);
+      return { label: "Fokus", value: ownTeam?.rank ? `Jagd auf Platz ${Math.max(1, ownTeam.rank - 1)}` : "Ligadruck" };
+    }
+
+    return labels[screenType] || labels.auto;
+  },
+
+  getMatchdayStatus(data) {
+    const matchday = data.nextMatchday || {};
+    const nextAt = matchday.at || matchday.date || this.config.nextMatchdayAt;
+
+    if (!nextAt) {
+      return null;
+    }
+
+    const target = new Date(nextAt);
+    if (Number.isNaN(target.getTime())) {
+      return null;
+    }
+
+    const diffMs = target.getTime() - Date.now();
+    const label = matchday.label || this.config.nextMatchdayLabel || "Nächster Spieltag";
+
+    if (diffMs <= 0 && diffMs > -3 * 60 * 60 * 1000) {
+      return { label, value: "läuft jetzt" };
+    }
+
+    if (diffMs <= 0) {
+      return { label, value: "heute prüfen" };
+    }
+
+    const totalMinutes = Math.ceil(diffMs / 60000);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+
+    if (days > 0) {
+      return { label, value: `${days}T ${hours}Std` };
+    }
+
+    if (hours > 0) {
+      return { label, value: `${hours}Std ${minutes}Min` };
+    }
+
+    return { label, value: `${minutes}Min` };
   },
 
   buildStandings(standings) {
