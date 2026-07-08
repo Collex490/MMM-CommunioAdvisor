@@ -1,0 +1,272 @@
+.communio-advisor {
+  --advisor-gold: #d9aa3f;
+  --advisor-gold-soft: rgba(217, 170, 63, 0.16);
+  --advisor-bg: rgba(8, 9, 12, 0.86);
+  --advisor-panel: rgba(255, 255, 255, 0.07);
+  --advisor-border: rgba(217, 170, 63, 0.34);
+  --advisor-text: rgba(255, 255, 255, 0.94);
+  --advisor-muted: rgba(255, 255, 255, 0.66);
+  box-sizing: border-box;
+  width: min(1120px, 96vw);
+  padding: 22px;
+  color: var(--advisor-text);
+  font-family: "Roboto Condensed", "Roboto", Arial, sans-serif;
+  background: linear-gradient(145deg, var(--advisor-bg), rgba(20, 18, 12, 0.9));
+  border: 1px solid var(--advisor-border);
+  border-radius: 8px;
+  box-shadow: 0 0 28px rgba(217, 170, 63, 0.13);
+}
+
+.communio-advisor * {
+  box-sizing: border-box;
+}
+
+.communio-advisor__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(217, 170, 63, 0.24);
+}
+
+.communio-advisor__eyebrow,
+.communio-advisor__card-label,
+.communio-advisor__footer,
+.communio-advisor__motto,
+.communio-advisor__card-meta {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.communio-advisor__eyebrow {
+  color: var(--advisor-gold);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.communio-advisor__title {
+  margin-top: 4px;
+  font-size: 38px;
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+.communio-advisor__motto {
+  margin-top: 8px;
+  color: var(--advisor-muted);
+  font-size: 16px;
+}
+
+.communio-advisor__badge {
+  flex: 0 0 auto;
+  min-width: 92px;
+  padding: 10px 14px;
+  color: #111;
+  background: var(--advisor-gold);
+  border-radius: 6px;
+  font-size: 19px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.communio-advisor__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.communio-advisor__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(250px, 0.85fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.communio-advisor__card {
+  min-height: 142px;
+  padding: 16px;
+  background: var(--advisor-panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid var(--advisor-gold);
+  border-radius: 8px;
+}
+
+.communio-advisor__card--rumor {
+  margin-top: 14px;
+  background: linear-gradient(135deg, var(--advisor-gold-soft), rgba(255, 255, 255, 0.06));
+}
+
+.communio-advisor__card-label {
+  color: var(--advisor-gold);
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.communio-advisor__card-name,
+.communio-advisor__rumor-headline {
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1.08;
+  font-weight: 700;
+}
+
+.communio-advisor__card-reason {
+  margin-top: 10px;
+  color: var(--advisor-muted);
+  font-size: 20px;
+  line-height: 1.22;
+}
+
+.communio-advisor__card-meta {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 13px;
+}
+
+.communio-advisor__footer {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  text-align: right;
+}
+
+.communio-advisor__ticker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 38px;
+  margin-top: 14px;
+  overflow: hidden;
+  background: rgba(217, 170, 63, 0.1);
+  border: 1px solid rgba(217, 170, 63, 0.22);
+  border-radius: 6px;
+}
+
+.communio-advisor__ticker-label {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: #111;
+  background: var(--advisor-gold);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.communio-advisor__ticker-track {
+  flex: 1 1 auto;
+  min-width: max-content;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 17px;
+  line-height: 38px;
+  white-space: nowrap;
+  animation: communio-advisor-ticker 32s linear infinite;
+}
+
+.communio-advisor__standings {
+  min-height: 100%;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+.communio-advisor__section-title {
+  color: var(--advisor-gold);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.communio-advisor__standing-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 10px;
+  padding: 7px 8px;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  font-size: 18px;
+}
+
+.communio-advisor__standing-row--own {
+  color: var(--advisor-text);
+  background: rgba(217, 170, 63, 0.16);
+  border: 1px solid rgba(217, 170, 63, 0.28);
+}
+
+.communio-advisor__standing-rank {
+  color: var(--advisor-gold);
+  font-weight: 700;
+}
+
+.communio-advisor__standing-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.communio-advisor__standing-points {
+  font-weight: 700;
+}
+
+.communio-advisor__empty {
+  margin-top: 14px;
+  color: var(--advisor-muted);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+@keyframes communio-advisor-ticker {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.communio-advisor__status {
+  padding: 28px;
+  color: var(--advisor-gold);
+  font-size: 24px;
+  text-align: center;
+}
+
+.communio-advisor__debug {
+  margin-top: 10px;
+  color: rgba(255, 120, 120, 0.75);
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .communio-advisor {
+    width: 96vw;
+    padding: 16px;
+  }
+
+  .communio-advisor__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .communio-advisor__content {
+    grid-template-columns: 1fr;
+  }
+
+  .communio-advisor__title {
+    font-size: 30px;
+  }
+
+  .communio-advisor__card-name,
+  .communio-advisor__rumor-headline {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "league": "WM Comunio",
+  "source": {
+    "platform": "Comunio",
+    "screenType": "demo"
+  },
+  "club": {
+    "name": "Pasta La Vista FC",
+    "boss": "Patron Co",
+    "coach": "Gennaro Gattuso",
+    "colors": ["Schwarz", "Gold"],
+    "motto": "Mangia, Lotta, Vinci",
+    "captain": "Sorloth"
+  },
+  "recommendations": {
+    "buy": {
+      "player": "Alexis Mac Allister",
+      "reason": "Stabiler Punktelieferant im Mittelfeld, falls der Marktpreis unter Ligadruck bleibt.",
+      "confidence": "hoch"
+    },
+    "sell": {
+      "player": "Ersatzkeeper ohne Einsatzgarantie",
+      "reason": "Kapital binden lohnt sich kaum, wenn kurzfristig ein Stammspieler auf dem Markt erscheint.",
+      "confidence": "mittel"
+    },
+    "risk": {
+      "player": "Sorloth",
+      "reason": "Kapitän bleibt gesetzt, aber bei enger Rotation Startelf kurz vor Spieltag prüfen.",
+      "confidence": "mittel"
+    },
+    "budget": {
+      "title": "Budget vorsichtig halten",
+      "reason": "Mindestens 2,5 Mio. Reserve für Last-Minute-Deals einplanen.",
+      "confidence": "hoch"
+    }
+  },
+  "standings": [
+    {
+      "rank": 1,
+      "name": "Pasta La Vista FC",
+      "points": 138,
+      "isUserClub": true
+    },
+    {
+      "rank": 2,
+      "name": "Sporting Bolzackerer",
+      "points": 131
+    },
+    {
+      "rank": 3,
+      "name": "Squadra Absenta",
+      "points": 119
+    },
+    {
+      "rank": 4,
+      "name": "FC Marktwert-Magier",
+      "points": 107
+    }
+  ],
+  "transferTicker": [
+    {
+      "action": "Gekauft",
+      "player": "Nico Williams",
+      "club": "Sporting Bolzackerer",
+      "price": "7,8 Mio."
+    },
+    {
+      "action": "Verkauft",
+      "player": "Rotationsverteidiger",
+      "club": "Squadra Absenta",
+      "price": "1,4 Mio."
+    },
+    {
+      "action": "Gekauft",
+      "player": "Mittelfeld-Joker",
+      "club": "Pasta La Vista FC",
+      "price": "3,2 Mio."
+    }
+  ],
+  "rumorKitchen": {
+    "headline": "Patron Co prüft Last-Minute-Deal",
+    "body": "Aus Kreisen der Pasta-Zentrale heißt es, Gattuso fordere mehr Biss im Mittelfeld. Sporting Bolzackerer soll bereits ein Gegenangebot vorbereiten."
+  },
+  "generatedAt": "2026-07-08T12:51:00.000Z"
+}

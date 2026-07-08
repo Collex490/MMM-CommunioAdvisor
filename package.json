@@ -1,0 +1,16 @@
+{
+  "name": "mmm-communio-advisor",
+  "version": "0.1.0",
+  "description": "MagicMirror module for Comunio and Kickbase screenshot analysis.",
+  "main": "MMM-CommunioAdvisor.js",
+  "scripts": {
+    "backend": "node backend/server.js",
+    "telegram": "node backend/telegram-bot.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "openai": "^4.56.0"
+  }
+}
