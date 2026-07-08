@@ -87,11 +87,11 @@
   width: 82px;
   height: 82px;
   object-fit: contain;
-  padding: 0;
-  background: transparent;
-  border: 0;
+  padding: 4px;
+  background: radial-gradient(circle, rgba(12, 12, 10, 0.98), rgba(0, 0, 0, 0.78));
+  border: 1px solid rgba(217, 170, 63, 0.55);
   border-radius: 50%;
-  mix-blend-mode: multiply;
+  box-shadow: 0 0 14px rgba(217, 170, 63, 0.14);
 }
 
 .communio-advisor__grid {
