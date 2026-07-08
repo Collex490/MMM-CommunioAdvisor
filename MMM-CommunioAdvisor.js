@@ -118,6 +118,7 @@ Module.register("MMM-CommunioAdvisor", {
   buildHeader(data) {
     const header = document.createElement("div");
     header.className = "communio-advisor__header";
+    const logoUrl = this.getClubLogoUrl(data);
 
     const titleBlock = document.createElement("div");
 
@@ -128,10 +129,10 @@ Module.register("MMM-CommunioAdvisor", {
     const titleRow = document.createElement("div");
     titleRow.className = "communio-advisor__title-row";
 
-    if (data.club?.logo?.url) {
+    if (logoUrl) {
       const logo = document.createElement("img");
       logo.className = "communio-advisor__logo";
-      logo.src = `${data.club.logo.url}?v=${encodeURIComponent(data.club.logo.updatedAt || "")}`;
+      logo.src = `${logoUrl}?v=${encodeURIComponent(data.club?.logo?.updatedAt || data.generatedAt || "")}`;
       logo.alt = `${data.club?.name || this.config.clubName} Logo`;
       titleRow.appendChild(logo);
     }
@@ -154,13 +155,26 @@ Module.register("MMM-CommunioAdvisor", {
 
     const badge = document.createElement("div");
     badge.className = "communio-advisor__badge";
-    badge.textContent = data.club?.captain ? `C ${data.club.captain}` : "WM 2026";
+    badge.textContent = data.club?.captain ? `Captain ${data.club.captain}` : "WM 2026";
     identity.appendChild(badge);
 
     header.appendChild(titleBlock);
     header.appendChild(identity);
 
     return header;
+  },
+
+  getClubLogoUrl(data) {
+    const logo = data.club?.logo;
+    if (typeof logo === "string") {
+      return logo;
+    }
+
+    if (logo?.url) {
+      return logo.url;
+    }
+
+    return data.clubLogo?.url || data.clubLogo || "";
   },
 
   buildCard(label, item, type) {

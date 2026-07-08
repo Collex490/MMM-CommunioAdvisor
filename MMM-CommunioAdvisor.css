@@ -66,12 +66,12 @@
 
 .communio-advisor__badge {
   flex: 0 0 auto;
-  min-width: 92px;
+  min-width: 142px;
   padding: 9px 14px;
   color: #111;
   background: var(--advisor-gold);
   border-radius: 6px;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 700;
   text-align: center;
 }
