@@ -151,12 +151,14 @@ function normalizeStandings(standings) {
 
 function normalizeAnalysis(analysis) {
   const recommendations = analysis.recommendations || {};
+  const squadInsights = normalizeSquadInsights(analysis.squadInsights);
   const normalizedRecommendations = {
     buy: normalizeRecommendation(recommendations.buy, "Kaufempfehlung offen"),
     sell: normalizeRecommendation(recommendations.sell, "Verkaufskandidat offen"),
     risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
     budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
   };
+  enhanceRecommendations(normalizedRecommendations, squadInsights, normalizeSource(analysis.source).screenType);
 
   return {
     ...analysis,
@@ -167,10 +169,61 @@ function normalizeAnalysis(analysis) {
     standings: normalizeStandings(analysis.standings),
     transferTicker: Array.isArray(analysis.transferTicker) ? analysis.transferTicker : [],
     budgetStatus: normalizeBudgetStatus(analysis.budgetStatus || analysis.budget, normalizedRecommendations.budget),
-    squadInsights: normalizeSquadInsights(analysis.squadInsights),
+    squadInsights,
     rumorKitchen: normalizeRumorKitchen(analysis.rumorKitchen),
     generatedAt: analysis.generatedAt || new Date().toISOString()
   };
+}
+
+function hasRecommendationContent(recommendation) {
+  if (!recommendation || typeof recommendation !== "object") {
+    return false;
+  }
+
+  const text = [
+    recommendation.player,
+    recommendation.title,
+    recommendation.reason
+  ].join(" ").toLowerCase();
+
+  return Boolean(recommendation.player || recommendation.title || recommendation.reason)
+    && !text.includes("offen")
+    && !text.includes("keine begruendung")
+    && !text.includes("keine begründung")
+    && !text.includes("noch keine belastbare");
+}
+
+function recommendationFromInsight(text, fallbackTitle) {
+  const value = String(text || "").trim();
+  if (!value) {
+    return null;
+  }
+
+  const player = value.split(/:| wegen | bei | als | nur | fuer | für /i)[0].trim();
+  return {
+    player: player || fallbackTitle,
+    title: fallbackTitle,
+    reason: value,
+    confidence: "mittel"
+  };
+}
+
+function enhanceRecommendations(recommendations, squadInsights, screenType) {
+  if (screenType === "squad") {
+    if (!hasRecommendationContent(recommendations.sell)) {
+      const fallbackSell = recommendationFromInsight(squadInsights.sell?.[0], "Verkaufskandidat");
+      if (fallbackSell) {
+        recommendations.sell = fallbackSell;
+      }
+    }
+
+    if (!hasRecommendationContent(recommendations.risk)) {
+      const fallbackRisk = recommendationFromInsight(squadInsights.watch?.[0], "Startelf-Risiko");
+      if (fallbackRisk) {
+        recommendations.risk = fallbackRisk;
+      }
+    }
+  }
 }
 
 function extractBudgetAmount(text) {
