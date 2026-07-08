@@ -127,6 +127,41 @@
   border-radius: 8px;
 }
 
+.communio-advisor__status-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.communio-advisor__status-item {
+  min-height: 54px;
+  padding: 8px 10px;
+  background: rgba(217, 170, 63, 0.1);
+  border: 1px solid rgba(217, 170, 63, 0.24);
+  border-radius: 8px;
+}
+
+.communio-advisor__status-item span {
+  display: block;
+  color: var(--advisor-gold);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.communio-advisor__status-item strong {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--advisor-text);
+  font-size: 19px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .communio-advisor__card--rumor {
   margin-top: 10px;
   background: linear-gradient(135deg, var(--advisor-gold-soft), rgba(255, 255, 255, 0.06));
@@ -289,7 +324,7 @@
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 8px;
-  align-items: baseline;
+  align-items: center;
   margin-top: 8px;
   padding: 6px 8px;
   color: rgba(255, 255, 255, 0.78);
@@ -309,14 +344,62 @@
   font-weight: 700;
 }
 
+.communio-advisor__standing-team,
+.communio-advisor__standing-name,
+.communio-advisor__standing-market {
+  min-width: 0;
+}
+
+.communio-advisor__standing-team {
+  display: grid;
+  gap: 2px;
+}
+
 .communio-advisor__standing-name {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.communio-advisor__standing-market {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .communio-advisor__standing-points {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
+}
+
+.communio-advisor__standing-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 25px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.communio-advisor__standing-score--matchday {
+  color: #155f1b;
+  background: #f4fff2;
+  border: 1px solid rgba(73, 199, 71, 0.65);
+}
+
+.communio-advisor__standing-score--total {
+  color: #fff;
+  background: #2f9a36;
+  border: 1px solid rgba(87, 213, 91, 0.45);
 }
 
 .communio-advisor__empty {

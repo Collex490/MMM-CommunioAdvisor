@@ -99,6 +99,10 @@ function mergeSquadInsights(previous, incoming) {
   };
 }
 
+function mergeBudgetStatus(previous, incoming) {
+  return incoming?.amount ? incoming : previous || {};
+}
+
 function mergeClub(previousClub, incomingClub) {
   const previous = previousClub && typeof previousClub === "object" ? previousClub : {};
   const incoming = incomingClub && typeof incomingClub === "object" ? incomingClub : {};
@@ -137,6 +141,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     recommendations: mergeRecommendations(previous.recommendations, incoming.recommendations),
     standings: mergeStandings(previous.standings, incoming.standings),
     transferTicker: mergeTransfers(previous.transferTicker, incoming.transferTicker),
+    budgetStatus: mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus),
     squadInsights: mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
     lineupImage: incoming.lineupImage?.url ? incoming.lineupImage : previous.lineupImage,
     rumorKitchen: incoming.rumorKitchen || previous.rumorKitchen,

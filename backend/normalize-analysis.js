@@ -103,6 +103,48 @@ function normalizeClub(club) {
   };
 }
 
+function normalizeNumberLike(value) {
+  if (value === null || value === undefined || value === "") {
+    return undefined;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const parsed = Number(String(value).replace(/[^\d-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeStandings(standings) {
+  if (!Array.isArray(standings)) {
+    return [];
+  }
+
+  return standings
+    .map((team, index) => {
+      if (!team || typeof team !== "object") {
+        return null;
+      }
+
+      const totalPoints = normalizeNumberLike(team.totalPoints ?? team.points ?? team.overallPoints);
+      const matchdayPoints = normalizeNumberLike(
+        team.matchdayPoints ?? team.lastMatchdayPoints ?? team.dayPoints ?? team.currentPoints ?? team.gameweekPoints
+      );
+
+      return {
+        ...team,
+        rank: normalizeNumberLike(team.rank) ?? index + 1,
+        name: team.name || team.team || team.club || "Unbekannt",
+        matchdayPoints,
+        totalPoints,
+        marketValue: team.marketValue || team.value || team.teamValue || "",
+        isUserClub: Boolean(team.isUserClub)
+      };
+    })
+    .filter(Boolean);
+}
+
 function normalizeAnalysis(analysis) {
   const recommendations = analysis.recommendations || {};
 
@@ -117,11 +159,32 @@ function normalizeAnalysis(analysis) {
       risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
       budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
     },
-    standings: Array.isArray(analysis.standings) ? analysis.standings : [],
+    standings: normalizeStandings(analysis.standings),
     transferTicker: Array.isArray(analysis.transferTicker) ? analysis.transferTicker : [],
+    budgetStatus: normalizeBudgetStatus(analysis.budgetStatus || analysis.budget),
     squadInsights: normalizeSquadInsights(analysis.squadInsights),
     rumorKitchen: normalizeRumorKitchen(analysis.rumorKitchen),
     generatedAt: analysis.generatedAt || new Date().toISOString()
+  };
+}
+
+function normalizeBudgetStatus(value) {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    return { amount: value };
+  }
+
+  if (typeof value !== "object") {
+    return {};
+  }
+
+  return {
+    amount: value.amount || value.balance || value.budget || value.label || "",
+    note: value.note || value.reason || value.assessment || "",
+    updatedAt: value.updatedAt || ""
   };
 }
 

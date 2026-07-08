@@ -90,6 +90,7 @@ Module.register("MMM-CommunioAdvisor", {
     grid.appendChild(this.buildCard("Startelf-Risiko", recommendations.risk, "risk"));
     grid.appendChild(this.buildCard("Budget-Hinweis", recommendations.budget, "budget"));
     mainColumn.appendChild(grid);
+    mainColumn.appendChild(this.buildStatusStrip(data));
 
     const sideColumn = document.createElement("div");
     sideColumn.className = "communio-advisor__side-column";
@@ -205,6 +206,38 @@ Module.register("MMM-CommunioAdvisor", {
     return card;
   },
 
+  buildStatusStrip(data) {
+    const strip = document.createElement("div");
+    strip.className = "communio-advisor__status-strip";
+
+    const ownTeam = (data.standings || []).find((team) => team.isUserClub || team.name === (data.club?.name || this.config.clubName));
+    const budget = data.budgetStatus || {};
+    const ownTotalPoints = ownTeam?.totalPoints ?? ownTeam?.points;
+    const items = [
+      ["Budget", budget.amount || budget.label || "offen"],
+      ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
+      ["Punkte", ownTotalPoints != null ? `${ownTotalPoints} P` : "-"],
+      ["Update", data.lastScreenType || data.source?.screenType || "auto"]
+    ];
+
+    items.forEach(([label, value]) => {
+      const item = document.createElement("div");
+      item.className = "communio-advisor__status-item";
+
+      const itemLabel = document.createElement("span");
+      itemLabel.textContent = label;
+
+      const itemValue = document.createElement("strong");
+      itemValue.textContent = value;
+
+      item.appendChild(itemLabel);
+      item.appendChild(itemValue);
+      strip.appendChild(item);
+    });
+
+    return strip;
+  },
+
   buildStandings(standings) {
     const panel = document.createElement("div");
     panel.className = "communio-advisor__standings";
@@ -233,16 +266,42 @@ Module.register("MMM-CommunioAdvisor", {
       rank.className = "communio-advisor__standing-rank";
       rank.textContent = `${team.rank || index + 1}.`;
 
+      const teamBlock = document.createElement("span");
+      teamBlock.className = "communio-advisor__standing-team";
+
       const name = document.createElement("span");
       name.className = "communio-advisor__standing-name";
       name.textContent = team.name || "Unbekannt";
 
+      const marketValue = document.createElement("span");
+      marketValue.className = "communio-advisor__standing-market";
+      marketValue.textContent = team.marketValue || team.value || "";
+
+      teamBlock.appendChild(name);
+      if (marketValue.textContent) {
+        teamBlock.appendChild(marketValue);
+      }
+
+      const matchdayPoints = team.matchdayPoints ?? team.lastMatchdayPoints ?? team.dayPoints ?? team.currentPoints;
+      const totalPoints = team.totalPoints ?? team.points;
       const points = document.createElement("span");
       points.className = "communio-advisor__standing-points";
-      points.textContent = `${team.points ?? "-"} P`;
+
+      const matchdayBadge = document.createElement("span");
+      matchdayBadge.className = "communio-advisor__standing-score communio-advisor__standing-score--matchday";
+      matchdayBadge.title = "Punkte letzter Spieltag";
+      matchdayBadge.textContent = matchdayPoints ?? "-";
+
+      const totalBadge = document.createElement("span");
+      totalBadge.className = "communio-advisor__standing-score communio-advisor__standing-score--total";
+      totalBadge.title = "Gesamtpunkte";
+      totalBadge.textContent = totalPoints ?? "-";
+
+      points.appendChild(matchdayBadge);
+      points.appendChild(totalBadge);
 
       row.appendChild(rank);
-      row.appendChild(name);
+      row.appendChild(teamBlock);
       row.appendChild(points);
       panel.appendChild(row);
     });
