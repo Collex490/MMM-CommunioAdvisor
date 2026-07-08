@@ -24,7 +24,7 @@ body {
 }
 
 body {
-  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
 }
 
 .ipad-advisor {
@@ -44,7 +44,7 @@ body {
 
 .ipad-advisor__shell {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ipad-advisor__header {
@@ -52,7 +52,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: linear-gradient(135deg, rgba(12, 13, 16, 0.94), rgba(25, 21, 12, 0.94));
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -70,7 +70,7 @@ body {
 
 .ipad-advisor__club {
   margin-top: 3px;
-  font-size: clamp(29px, 4vw, 46px);
+  font-size: clamp(28px, 3.4vw, 42px);
   font-weight: 900;
   line-height: 1;
 }
@@ -85,7 +85,7 @@ body {
 
 .ipad-advisor__captain {
   flex: 0 0 auto;
-  padding: 12px 16px;
+  padding: 10px 15px;
   color: #111;
   background: var(--gold);
   border-radius: 9px;
@@ -95,8 +95,8 @@ body {
 
 .ipad-advisor__ticker {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  min-height: 36px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 32px;
   overflow: hidden;
   background: rgba(217, 170, 63, 0.11);
   border: 1px solid rgba(217, 170, 63, 0.22);
@@ -108,10 +108,13 @@ body {
   place-items: center;
   color: #111;
   background: var(--gold);
+  overflow: hidden;
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.06em;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .ipad-advisor__ticker-track {
@@ -120,7 +123,7 @@ body {
   color: rgba(255, 255, 255, 0.82);
   font-size: 16px;
   font-weight: 700;
-  line-height: 36px;
+  line-height: 32px;
   white-space: nowrap;
   animation: ticker 36s linear infinite;
 }
@@ -128,13 +131,13 @@ body {
 .ipad-advisor__top-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(390px, 0.92fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 .ipad-advisor__cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .ipad-advisor__card,
@@ -149,29 +152,29 @@ body {
 }
 
 .ipad-advisor__card {
-  min-height: 148px;
-  padding: 14px;
+  min-height: 126px;
+  padding: 11px 12px;
 }
 
 .ipad-advisor__card-title,
 .ipad-advisor__rumor-title {
-  margin-top: 8px;
-  font-size: clamp(21px, 2.35vw, 30px);
+  margin-top: 6px;
+  font-size: clamp(20px, 2vw, 27px);
   font-weight: 900;
   line-height: 1.05;
 }
 
 .ipad-advisor__card-text,
 .ipad-advisor__rumor-text {
-  margin-top: 10px;
+  margin-top: 7px;
   color: var(--muted);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 650;
-  line-height: 1.3;
+  line-height: 1.22;
 }
 
 .ipad-advisor__meta {
-  margin-top: 12px;
+  margin-top: 8px;
   color: rgba(255, 255, 255, 0.45);
   font-size: 12px;
   font-weight: 800;
@@ -182,13 +185,13 @@ body {
 .ipad-advisor__status {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .ipad-advisor__status-item {
-  min-height: 70px;
-  padding: 10px;
+  min-height: 58px;
+  padding: 8px 10px;
   background: var(--panel-strong);
   border: 1px solid rgba(217, 170, 63, 0.25);
   border-radius: 12px;
@@ -215,21 +218,21 @@ body {
 
 .ipad-advisor__side {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ipad-advisor__lineup,
 .ipad-advisor__standings,
 .ipad-advisor__squad,
 .ipad-advisor__rumor {
-  padding: 12px;
+  padding: 9px 11px;
 }
 
 .ipad-advisor__lineup-image {
   display: block;
   width: 100%;
-  height: min(31vh, 330px);
-  margin-top: 10px;
+  height: min(24vh, 260px);
+  margin-top: 7px;
   object-fit: contain;
   background: rgba(0, 0, 0, 0.24);
   border-radius: 10px;
@@ -240,8 +243,8 @@ body {
   grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  margin-top: 8px;
-  padding: 8px 10px;
+  margin-top: 6px;
+  padding: 6px 9px;
   background: rgba(255, 255, 255, 0.045);
   border-radius: 9px;
 }
@@ -303,9 +306,9 @@ body {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 650;
   line-height: 1.25;
 }
@@ -327,6 +330,10 @@ body {
 .ipad-advisor__footer {
   text-align: right;
   color: rgba(255, 255, 255, 0.48);
+}
+
+.ipad-advisor__rumor {
+  min-height: 92px;
 }
 
 .ipad-advisor__empty {
@@ -371,6 +378,6 @@ body {
   }
 
   .ipad-advisor__ticker {
-    grid-template-columns: 120px minmax(0, 1fr);
+    grid-template-columns: 150px minmax(0, 1fr);
   }
 }

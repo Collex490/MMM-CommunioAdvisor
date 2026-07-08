@@ -26,6 +26,19 @@
     return values.find((value) => value !== undefined && value !== null && value !== "") || "";
   }
 
+  function assetUrl(url, version = "") {
+    if (!url) return "";
+    if (/^https?:\/\//.test(url) || url.startsWith("/")) {
+      return version ? `${url}?v=${encodeURIComponent(version)}` : url;
+    }
+
+    const resolved = url.startsWith("modules/")
+      ? `/${url}`
+      : url;
+
+    return version ? `${resolved}?v=${encodeURIComponent(version)}` : resolved;
+  }
+
   function normalizeRecommendation(item, fallback) {
     return item && typeof item === "object"
       ? item
@@ -134,7 +147,7 @@
       return node;
     }
     const img = el("img", "ipad-advisor__lineup-image");
-    img.src = `${data.lineupImage.url}?v=${encodeURIComponent(data.lineupImage.updatedAt || "")}`;
+    img.src = assetUrl(data.lineupImage.url, data.lineupImage.updatedAt || "");
     img.alt = data.lineupImage.alt || "Aktuelle Teamaufstellung";
     node.appendChild(img);
     return node;
