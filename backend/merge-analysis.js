@@ -6,9 +6,34 @@ function hasUsefulRecommendation(recommendation) {
     return false;
   }
 
-  const reason = recommendation.reason || "";
-  return Boolean(recommendation.player || recommendation.title)
-    && !reason.includes("Noch keine belastbare Empfehlung erkannt");
+  const text = [
+    recommendation.player,
+    recommendation.title,
+    recommendation.reason,
+    recommendation.assessment
+  ].join(" ").toLowerCase();
+
+  const blockedPhrases = [
+    "noch keine belastbare empfehlung erkannt",
+    "kein einzelspieler sichtbar",
+    "kein spieler sichtbar",
+    "keine spieler sichtbar",
+    "nicht sichtbar",
+    "keine verkaufskandidaten",
+    "keine konkreten",
+    "screenshot ist nur",
+    "screenshot zeigt nur",
+    "nur das budget",
+    "nur die tabelle",
+    "keine spielerwerte",
+    "keine kaderdaten"
+  ];
+
+  if (blockedPhrases.some((phrase) => text.includes(phrase))) {
+    return false;
+  }
+
+  return Boolean(recommendation.player || recommendation.title || recommendation.reason);
 }
 
 function mergeRecommendations(previous, incoming) {

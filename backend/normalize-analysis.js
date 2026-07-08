@@ -149,30 +149,43 @@ function normalizeStandings(standings) {
 
 function normalizeAnalysis(analysis) {
   const recommendations = analysis.recommendations || {};
+  const normalizedRecommendations = {
+    buy: normalizeRecommendation(recommendations.buy, "Kaufempfehlung offen"),
+    sell: normalizeRecommendation(recommendations.sell, "Verkaufskandidat offen"),
+    risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
+    budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
+  };
 
   return {
     ...analysis,
     league: analysis.league || "WM Comunio",
     source: normalizeSource(analysis.source),
     club: normalizeClub(analysis.club),
-    recommendations: {
-      buy: normalizeRecommendation(recommendations.buy, "Kaufempfehlung offen"),
-      sell: normalizeRecommendation(recommendations.sell, "Verkaufskandidat offen"),
-      risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
-      budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
-    },
+    recommendations: normalizedRecommendations,
     standings: normalizeStandings(analysis.standings),
     transferTicker: Array.isArray(analysis.transferTicker) ? analysis.transferTicker : [],
-    budgetStatus: normalizeBudgetStatus(analysis.budgetStatus || analysis.budget),
+    budgetStatus: normalizeBudgetStatus(analysis.budgetStatus || analysis.budget, normalizedRecommendations.budget),
     squadInsights: normalizeSquadInsights(analysis.squadInsights),
     rumorKitchen: normalizeRumorKitchen(analysis.rumorKitchen),
     generatedAt: analysis.generatedAt || new Date().toISOString()
   };
 }
 
-function normalizeBudgetStatus(value) {
+function extractBudgetAmount(text) {
+  const match = String(text || "").match(/\b\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?\b|\b\d{4,}\b/);
+  return match ? match[0] : "";
+}
+
+function normalizeBudgetStatus(value, budgetRecommendation) {
+  const recommendationText = [
+    budgetRecommendation?.player,
+    budgetRecommendation?.title,
+    budgetRecommendation?.reason
+  ].join(" ");
+
   if (!value) {
-    return {};
+    const amount = extractBudgetAmount(recommendationText);
+    return amount ? { amount, note: "Aus Budget-Hinweis erkannt" } : {};
   }
 
   if (typeof value === "string") {
@@ -184,7 +197,7 @@ function normalizeBudgetStatus(value) {
   }
 
   return {
-    amount: value.amount || value.balance || value.budget || value.label || "",
+    amount: value.amount || value.balance || value.budget || value.label || extractBudgetAmount(recommendationText),
     note: value.note || value.reason || value.assessment || "",
     updatedAt: value.updatedAt || ""
   };

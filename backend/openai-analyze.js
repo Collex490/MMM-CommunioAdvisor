@@ -31,7 +31,9 @@ async function analyzeScreenshot(imagePath, options = {}) {
             text: [
               "Analysiere den Screenshot.",
               `Vom Nutzer gesetzter Screenshot-Modus: ${screenTypeHint}. Wenn der Modus nicht auto ist, verwende ihn fuer source.screenType.`,
-              "Erstelle Empfehlungen fuer buy, sell, risk und budget.",
+              "Erstelle in recommendations kurze, nutzbare Manager-Infos statt Meta-Erklaerungen. Keine Saetze wie 'im Screenshot ist nur...' oder 'keine Spieler sichtbar' als Kacheltext verwenden.",
+              "Wenn der Screenshot keine Spieler zeigt, lasse buy, sell und risk leer oder gib nur allgemein strategische Hinweise ohne Spielername. Ueberschreibe keine vorhandenen Spielerempfehlungen mit Platzhaltern.",
+              "Die Budget-Kachel soll eine konkrete Handlung enthalten, z. B. Maximalgebot, Reserve halten, aggressiv kaufen oder abwarten.",
               "Klassifiziere source.screenType moeglichst exakt als squad, transfermarket, budget, standings oder lineup.",
               "Nutze diese Rollenspielwelt: Pasta La Vista FC, Patron Co, Gennaro Gattuso, Motto Mangia Lotta Vinci, Kapitaen Sorloth; Sporting Bolzackerer mit Mister Rob und Ruben Amorim; Squadra Absenta mit Don Rib.",
               "Wenn der Screenshot eine Tabelle zeigt, extrahiere standings als Array mit rank, name, matchdayPoints, totalPoints, marketValue und isUserClub. Wichtig: Bei Comunio-Tabellen ist die linke Punktzahl der letzte Spieltag bzw. Spieltagspunkte, die rechte Punktzahl sind die Gesamtpunkte.",
