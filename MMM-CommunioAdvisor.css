@@ -78,9 +78,20 @@
 
 .communio-advisor__content {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(330px, 0.95fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(430px, 0.85fr);
+  align-items: start;
+  gap: 12px;
   margin-top: 12px;
+}
+
+.communio-advisor__main-column,
+.communio-advisor__side-column {
+  min-width: 0;
+}
+
+.communio-advisor__side-column {
+  display: grid;
+  gap: 10px;
 }
 
 .communio-advisor__card {
@@ -98,7 +109,7 @@
 }
 
 .communio-advisor__lineup {
-  margin-top: 10px;
+  margin-top: 0;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(217, 170, 63, 0.22);
@@ -138,7 +149,7 @@
 .communio-advisor__lineup-image {
   display: block;
   width: 100%;
-  max-height: 260px;
+  height: min(31vh, 330px);
   margin-top: 10px;
   object-fit: contain;
   background: rgba(0, 0, 0, 0.22);
@@ -191,9 +202,11 @@
 }
 
 .communio-advisor__ticker {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
+  gap: 0;
   min-height: 34px;
   margin-top: 10px;
   overflow: hidden;
@@ -203,6 +216,8 @@
 }
 
 .communio-advisor__ticker-label {
+  position: relative;
+  z-index: 2;
   flex: 0 0 150px;
   align-self: stretch;
   display: flex;
@@ -218,9 +233,11 @@
 }
 
 .communio-advisor__ticker-track {
+  position: relative;
+  z-index: 1;
   flex: 1 1 auto;
   min-width: max-content;
-  padding-left: 18px;
+  padding-left: 24px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 17px;
   line-height: 34px;
@@ -229,7 +246,7 @@
 }
 
 .communio-advisor__standings {
-  min-height: 100%;
+  min-height: 0;
   padding: 12px;
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.12);

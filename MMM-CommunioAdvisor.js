@@ -80,24 +80,34 @@ Module.register("MMM-CommunioAdvisor", {
     const content = document.createElement("div");
     content.className = "communio-advisor__content";
 
+    const mainColumn = document.createElement("div");
+    mainColumn.className = "communio-advisor__main-column";
+
     const grid = document.createElement("div");
     grid.className = "communio-advisor__grid";
     grid.appendChild(this.buildCard("Beste Kaufempfehlung", recommendations.buy, "buy"));
     grid.appendChild(this.buildCard("Verkaufskandidat", recommendations.sell, "sell"));
     grid.appendChild(this.buildCard("Startelf-Risiko", recommendations.risk, "risk"));
     grid.appendChild(this.buildCard("Budget-Hinweis", recommendations.budget, "budget"));
-    content.appendChild(grid);
+    mainColumn.appendChild(grid);
+
+    const sideColumn = document.createElement("div");
+    sideColumn.className = "communio-advisor__side-column";
+
+    if (this.config.showLineupImage) {
+      sideColumn.appendChild(this.buildLineupImage(data.lineupImage));
+    }
 
     if (this.config.showStandings) {
-      content.appendChild(this.buildStandings(data.standings || []));
+      sideColumn.appendChild(this.buildStandings(data.standings || []));
     }
+
+    content.appendChild(mainColumn);
+    content.appendChild(sideColumn);
 
     wrapper.appendChild(content);
     if (this.config.showSquadInsights) {
       wrapper.appendChild(this.buildSquadInsights(data.squadInsights));
-    }
-    if (this.config.showLineupImage) {
-      wrapper.appendChild(this.buildLineupImage(data.lineupImage));
     }
     wrapper.appendChild(this.buildRumorCard(data.rumorKitchen, data.rumorImage));
     wrapper.appendChild(this.buildFooter(data));
