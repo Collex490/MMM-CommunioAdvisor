@@ -180,6 +180,7 @@ Setzt den Kapitaen oben rechts im Modul.
 ```
 
 Danach ein Logo-Bild schicken. Der Bot speichert es als `uploads/club-logo.jpg` und zeigt es oben rechts neben dem Kapitaen an.
+Fuer transparente Logos die PNG am besten als Telegram-Datei/Dokument senden; dann speichert der Bot `uploads/club-logo.png`.
 
 Auch bei `/tabelle`, `/budget` und `/kader` duerfen mehrere Screenshots nacheinander kommen, wenn nicht alles auf ein Bild passt.
 

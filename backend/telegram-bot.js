@@ -109,6 +109,28 @@ function normalizeClubForUpdate(data) {
   };
 }
 
+function fileExtension(fileName, fallback = ".jpg") {
+  const extension = path.extname(fileName || "").toLowerCase();
+  return extension || fallback;
+}
+
+async function saveClubLogo(message, sourcePath, extension = ".jpg") {
+  const logoFileName = extension === ".png" ? "club-logo.png" : "club-logo.jpg";
+  const logoPath = path.join(uploadDir, logoFileName);
+  await fs.copyFile(sourcePath, logoPath);
+
+  const current = await readCurrentAnalysis();
+  const club = normalizeClubForUpdate(current);
+  club.logo = {
+    url: `${publicUploadBase}/${logoFileName}`,
+    alt: `${club.name || "Pasta La Vista FC"} Logo`,
+    updatedAt: new Date().toISOString()
+  };
+
+  await writeCurrentAnalysis({ ...current, club });
+  await bot.sendMessage(message.chat.id, "Vereinslogo gespeichert. MagicMirror aktualisiert sich gleich.");
+}
+
 async function setModeAndReply(message, mode) {
   setChatMode(message.chat.id, mode);
   await bot.sendMessage(message.chat.id, `Modus gesetzt: ${modeLabels[mode]}. Sende jetzt den passenden Screenshot.`);
@@ -163,20 +185,7 @@ bot.on("photo", async (message) => {
     await fs.rename(downloadedPath, targetPath);
 
     if (chatMode === "logo") {
-      const logoFileName = "club-logo.jpg";
-      const logoPath = path.join(uploadDir, logoFileName);
-      await fs.copyFile(targetPath, logoPath);
-
-      const current = await readCurrentAnalysis();
-      const club = normalizeClubForUpdate(current);
-      club.logo = {
-        url: `${publicUploadBase}/${logoFileName}`,
-        alt: `${club.name || "Pasta La Vista FC"} Logo`,
-        updatedAt: new Date().toISOString()
-      };
-
-      await writeCurrentAnalysis({ ...current, club });
-      await bot.sendMessage(message.chat.id, "Vereinslogo gespeichert. MagicMirror aktualisiert sich gleich.");
+      await saveClubLogo(message, targetPath, ".jpg");
       return;
     }
 
@@ -228,6 +237,43 @@ bot.on("photo", async (message) => {
     await bot.sendMessage(message.chat.id, "Analyse gespeichert. MagicMirror aktualisiert sich gleich.");
   } catch (error) {
     await bot.sendMessage(message.chat.id, `Analyse fehlgeschlagen: ${error.message}`);
+  }
+});
+
+bot.on("document", async (message) => {
+  try {
+    if (allowedChatId && String(message.chat.id) !== String(allowedChatId)) {
+      await bot.sendMessage(message.chat.id, "Dieser Chat ist fuer den Comunio Advisor nicht freigegeben.");
+      return;
+    }
+
+    const captionMode = modeFromText(message.caption);
+    const chatMode = captionMode || getChatMode(message.chat.id);
+    if (captionMode) {
+      setChatMode(message.chat.id, captionMode);
+    }
+
+    if (chatMode !== "logo") {
+      await bot.sendMessage(message.chat.id, "Dateien werden aktuell nur im /logo-Modus verarbeitet. Fuer Screenshots bitte als Bild senden.");
+      return;
+    }
+
+    const document = message.document;
+    const extension = fileExtension(document.file_name, ".png");
+    const mimeType = String(document.mime_type || "").toLowerCase();
+
+    if (extension !== ".png" && !mimeType.includes("png")) {
+      await bot.sendMessage(message.chat.id, "Bitte das Vereinslogo als PNG-Datei senden, damit Transparenz erhalten bleibt.");
+      return;
+    }
+
+    await fs.mkdir(uploadDir, { recursive: true });
+    const downloadedPath = await bot.downloadFile(document.file_id, uploadDir);
+    const targetPath = path.join(uploadDir, `${Date.now()}-${path.basename(document.file_name || "logo.png")}`);
+    await fs.rename(downloadedPath, targetPath);
+    await saveClubLogo(message, targetPath, ".png");
+  } catch (error) {
+    await bot.sendMessage(message.chat.id, `Logo-Upload fehlgeschlagen: ${error.message}`);
   }
 });
 
