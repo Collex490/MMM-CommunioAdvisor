@@ -94,7 +94,6 @@
     node.appendChild(el("div", "ipad-advisor__label", label));
     node.appendChild(el("div", "ipad-advisor__card-title", firstValue(recommendation.player, recommendation.title, fallback)));
     node.appendChild(el("div", "ipad-advisor__card-text", firstValue(recommendation.reason, recommendation.detail, "Noch keine Begruendung vorhanden.")));
-    node.appendChild(el("div", "ipad-advisor__meta", recommendation.confidence ? `Sicherheit: ${recommendation.confidence}` : "Analyse"));
     return node;
   }
 

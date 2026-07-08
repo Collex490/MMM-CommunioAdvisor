@@ -204,14 +204,9 @@ Module.register("MMM-CommunioAdvisor", {
     reason.className = "communio-advisor__card-reason";
     reason.textContent = item?.reason || "Sende einen Screenshot per Telegram, sobald das Backend aktiv ist.";
 
-    const meta = document.createElement("div");
-    meta.className = "communio-advisor__card-meta";
-    meta.textContent = item?.confidence ? `Sicherheit: ${item.confidence}` : "Demo";
-
     card.appendChild(cardLabel);
     card.appendChild(name);
     card.appendChild(reason);
-    card.appendChild(meta);
 
     return card;
   },
