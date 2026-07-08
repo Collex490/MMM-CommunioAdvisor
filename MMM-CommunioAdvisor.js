@@ -6,7 +6,6 @@ Module.register("MMM-CommunioAdvisor", {
     clubName: "Pasta La Vista FC",
     showStandings: true,
     showTransferTicker: true,
-    showTransferNews: true,
     showLineupImage: true,
     showRumorImage: true,
     showSquadInsights: true,
@@ -119,9 +118,6 @@ Module.register("MMM-CommunioAdvisor", {
     wrapper.appendChild(content);
     if (this.config.showSquadInsights) {
       wrapper.appendChild(this.buildSquadInsights(data.squadInsights));
-    }
-    if (this.config.showTransferNews) {
-      wrapper.appendChild(this.buildTransferNews(data.transferTicker || []));
     }
     wrapper.appendChild(this.buildRumorCard(data.rumorKitchen, data.rumorImage));
     wrapper.appendChild(this.buildFooter(data));
@@ -434,7 +430,7 @@ Module.register("MMM-CommunioAdvisor", {
 
     const label = document.createElement("div");
     label.className = "communio-advisor__ticker-label";
-    label.textContent = "Transfermarkt";
+    label.textContent = "Transfernews";
 
     const track = document.createElement("div");
     track.className = "communio-advisor__ticker-track";
@@ -444,6 +440,7 @@ Module.register("MMM-CommunioAdvisor", {
     ];
 
     const text = items
+      .filter((item) => this.isHumanTransfer(item))
       .slice(0, 10)
       .map((item) => {
         const price = item.price ? ` fuer ${item.price}` : "";
@@ -457,6 +454,19 @@ Module.register("MMM-CommunioAdvisor", {
     ticker.appendChild(track);
 
     return ticker;
+  },
+
+  isHumanTransfer(item) {
+    const text = [
+      item?.action,
+      item?.player,
+      item?.club,
+      item?.price
+    ].join(" ").toLowerCase();
+    return Boolean(item?.player || item?.action)
+      && !text.includes("computer")
+      && !text.includes("listed")
+      && !text.includes("gelistet");
   },
 
   buildSquadInsights(squadInsights) {
@@ -501,51 +511,6 @@ Module.register("MMM-CommunioAdvisor", {
       panel.appendChild(row);
     });
 
-    return panel;
-  },
-
-  buildTransferNews(transfers) {
-    const panel = document.createElement("div");
-    panel.className = "communio-advisor__transfer-news";
-
-    const label = document.createElement("div");
-    label.className = "communio-advisor__card-label";
-    label.textContent = "Transfernews";
-    panel.appendChild(label);
-
-    const items = (transfers || [])
-      .filter((item) => item && (item.player || item.action || item.club))
-      .slice(0, 4);
-
-    if (!items.length) {
-      const empty = document.createElement("div");
-      empty.className = "communio-advisor__empty";
-      empty.textContent = "Noch keine Kauf-/Verkauf-News ausgewertet.";
-      panel.appendChild(empty);
-      return panel;
-    }
-
-    const list = document.createElement("div");
-    list.className = "communio-advisor__transfer-list";
-
-    items.forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "communio-advisor__transfer-row";
-
-      const action = document.createElement("span");
-      action.className = "communio-advisor__transfer-action";
-      action.textContent = item.action || "Update";
-
-      const text = document.createElement("strong");
-      const price = item.price ? ` fuer ${item.price}` : "";
-      text.textContent = `${item.player || "Unbekannt"} zu ${item.club || "unbekannt"}${price}`;
-
-      row.appendChild(action);
-      row.appendChild(text);
-      list.appendChild(row);
-    });
-
-    panel.appendChild(list);
     return panel;
   },
 

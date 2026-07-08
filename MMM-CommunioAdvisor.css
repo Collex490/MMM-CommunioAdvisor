@@ -185,14 +185,6 @@
   border-radius: 8px;
 }
 
-.communio-advisor__transfer-news {
-  margin-top: 10px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(217, 170, 63, 0.22);
-  border-left: 4px solid var(--advisor-gold);
-  border-radius: 8px;
-}
 
 .communio-advisor__squad-row {
   display: grid;
@@ -214,42 +206,6 @@
   font-weight: 400;
 }
 
-.communio-advisor__transfer-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 10px;
-  margin-top: 8px;
-}
-
-.communio-advisor__transfer-row {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  min-height: 30px;
-  padding: 5px 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 6px;
-  color: var(--advisor-muted);
-  font-size: 15px;
-  line-height: 1.1;
-}
-
-.communio-advisor__transfer-action {
-  color: var(--advisor-gold);
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.communio-advisor__transfer-row strong {
-  color: var(--advisor-text);
-  font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .communio-advisor__lineup-image {
   display: block;

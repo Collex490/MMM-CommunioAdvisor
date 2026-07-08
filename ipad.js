@@ -122,9 +122,10 @@
 
   function ticker(data) {
     const node = el("section", "ipad-advisor__ticker");
-    node.appendChild(el("div", "ipad-advisor__ticker-label", "Transfermarkt"));
+    node.appendChild(el("div", "ipad-advisor__ticker-label", "Transfernews"));
     const track = el("div", "ipad-advisor__ticker-track");
-    const transfers = data.transferTicker?.length ? data.transferTicker : [
+    const humanTransfers = (data.transferTicker || []).filter(isHumanTransfer);
+    const transfers = humanTransfers.length ? humanTransfers : [
       { action: "Info", player: "Noch keine Transfers", club: "Telegram-Screenshot senden" }
     ];
     const text = transfers
@@ -137,6 +138,19 @@
     track.textContent = `${text}  +++  ${text}`;
     node.appendChild(track);
     return node;
+  }
+
+  function isHumanTransfer(item) {
+    const text = [
+      item?.action,
+      item?.player,
+      item?.club,
+      item?.price
+    ].join(" ").toLowerCase();
+    return Boolean(item?.player || item?.action)
+      && !text.includes("computer")
+      && !text.includes("listed")
+      && !text.includes("gelistet");
   }
 
   function lineup(data) {
@@ -207,29 +221,6 @@
     return node;
   }
 
-  function transferNews(data) {
-    const node = el("section", "ipad-advisor__transfer-news");
-    node.appendChild(el("div", "ipad-advisor__label", "Transfernews"));
-    const transfers = (data.transferTicker || [])
-      .filter((item) => item && (item.player || item.action || item.club))
-      .slice(0, 5);
-
-    if (!transfers.length) {
-      node.appendChild(el("div", "ipad-advisor__empty", "Noch keine Kauf-/Verkauf-News ausgewertet."));
-      return node;
-    }
-
-    transfers.forEach((item) => {
-      const row = el("div", "ipad-advisor__transfer-row");
-      row.appendChild(el("span", "", item.action || "Update"));
-      const price = item.price ? ` fuer ${item.price}` : "";
-      row.appendChild(el("strong", "", `${item.player || "Unbekannt"} zu ${item.club || "unbekannt"}${price}`));
-      node.appendChild(row);
-    });
-
-    return node;
-  }
-
   function rumor(data) {
     const node = el("section", "ipad-advisor__rumor");
     node.appendChild(el("div", "ipad-advisor__label", "Geruechtekueche"));
@@ -273,7 +264,6 @@
 
     const bottomGrid = el("div", "ipad-advisor__bottom-grid");
     bottomGrid.appendChild(squad(data));
-    bottomGrid.appendChild(transferNews(data));
     bottomGrid.appendChild(rumor(data));
     shell.appendChild(bottomGrid);
     const timestamp = data.generatedAt ? new Date(data.generatedAt).toLocaleString("de-DE") : "unbekannt";

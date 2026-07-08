@@ -66,6 +66,17 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
 
   return combined
     .filter((item) => {
+      const text = [
+        item.action || "",
+        item.player || "",
+        item.club || "",
+        item.price || ""
+      ].join(" ").toLowerCase();
+
+      if (text.includes("computer") || text.includes("listed") || text.includes("gelistet")) {
+        return false;
+      }
+
       const key = [
         item.action || "",
         item.player || "",

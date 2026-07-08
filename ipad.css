@@ -149,7 +149,6 @@ body {
 .ipad-advisor__lineup,
 .ipad-advisor__standings,
 .ipad-advisor__squad,
-.ipad-advisor__transfer-news,
 .ipad-advisor__rumor {
   background: var(--panel);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -230,7 +229,6 @@ body {
 .ipad-advisor__lineup,
 .ipad-advisor__standings,
 .ipad-advisor__squad,
-.ipad-advisor__transfer-news,
 .ipad-advisor__rumor {
   padding: 9px 11px;
 }
@@ -330,36 +328,6 @@ body {
   font-weight: 650;
 }
 
-.ipad-advisor__transfer-row {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  margin-top: 6px;
-  padding: 5px 7px;
-  background: rgba(255, 255, 255, 0.045);
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.15;
-}
-
-.ipad-advisor__transfer-row span {
-  color: var(--gold);
-  font-weight: 900;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ipad-advisor__transfer-row strong {
-  color: var(--text);
-  font-weight: 650;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .ipad-advisor__rumor {
   background: linear-gradient(135deg, var(--gold-soft), rgba(255, 255, 255, 0.055));
@@ -376,13 +344,12 @@ body {
 
 .ipad-advisor__bottom-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr) minmax(0, 1.05fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: 8px;
   align-items: stretch;
 }
 
 .ipad-advisor__bottom-grid .ipad-advisor__squad,
-.ipad-advisor__bottom-grid .ipad-advisor__transfer-news,
 .ipad-advisor__bottom-grid .ipad-advisor__rumor {
   min-height: 126px;
 }

@@ -42,7 +42,7 @@ async function analyzeScreenshot(imagePath, options = {}) {
               "Wenn der Screenshot eine Tabelle zeigt, extrahiere standings als Array mit rank, name, matchdayPoints, totalPoints, marketValue und isUserClub. Wichtig: Bei Comunio-Tabellen ist die linke Punktzahl der letzte Spieltag bzw. Spieltagspunkte, die rechte Punktzahl sind die Gesamtpunkte.",
               "Wichtig: marketValue, Kaderwert, Teamwert oder Vereinswert sind kein Budget/Kontostand. Schreibe solche Werte nie in budgetStatus.amount.",
               "Wenn source.screenType transfermarket ist, geht es um aktuell angebotene Spieler auf dem Markt. Fuettere damit recommendations.buy, aber schreibe keine Marktangebote in transferTicker.",
-              "Wenn source.screenType transfernews ist, geht es um abgeschlossene Kaeufe/Verkaeufe der Liga. Extrahiere nur dann transferTicker als Array mit action, player, club und price. Beispiele fuer action: gekauft, verkauft.",
+              "Wenn source.screenType transfernews ist, geht es um abgeschlossene Kaeufe/Verkaeufe der Liga. Extrahiere nur dann transferTicker als Array mit action, player, club und price. Beispiele fuer action: gekauft, verkauft. Ignoriere alle Zeilen mit Computer, Markt, listed, gelistet oder freien Marktangeboten.",
               "Wenn der Screenshot eine Aufstellung zeigt, nutze source.screenType lineup.",
               "Nur wenn der Screenshot explizit Budget, Kontostand, Konto oder Geldbestand zeigt, extrahiere budgetStatus mit amount und note.",
               "Wenn der Screenshot einen Kader zeigt, extrahiere squadInsights mit keep, sell und watch als Textarrays.",
