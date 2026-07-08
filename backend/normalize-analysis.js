@@ -152,18 +152,19 @@ function normalizeStandings(standings) {
 function normalizeAnalysis(analysis) {
   const recommendations = analysis.recommendations || {};
   const squadInsights = normalizeSquadInsights(analysis.squadInsights);
+  const source = normalizeSource(analysis.source);
   const normalizedRecommendations = {
     buy: normalizeRecommendation(recommendations.buy, "Kaufempfehlung offen"),
     sell: normalizeRecommendation(recommendations.sell, "Verkaufskandidat offen"),
     risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
     budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
   };
-  enhanceRecommendations(normalizedRecommendations, squadInsights, normalizeSource(analysis.source).screenType);
+  enhanceRecommendations(normalizedRecommendations, squadInsights, source.screenType);
 
   return {
     ...analysis,
     league: analysis.league || "WM Comunio",
-    source: normalizeSource(analysis.source),
+    source,
     club: normalizeClub(analysis.club),
     recommendations: normalizedRecommendations,
     standings: normalizeStandings(analysis.standings),
@@ -209,6 +210,23 @@ function recommendationFromInsight(text, fallbackTitle) {
 }
 
 function enhanceRecommendations(recommendations, squadInsights, screenType) {
+  if (screenType === "transfermarket" && !hasRecommendationContent(recommendations.buy)) {
+    const fallbackBuy = firstUsefulRecommendation([
+      recommendations.budget,
+      recommendations.risk,
+      recommendations.sell
+    ]);
+
+    if (fallbackBuy) {
+      recommendations.buy = {
+        player: fallbackBuy.player || fallbackBuy.title || "Marktchance",
+        title: "Kaufempfehlung",
+        reason: fallbackBuy.reason || fallbackBuy.title || "Beste sichtbare Marktchance aus dem Transfermarkt-Screenshot.",
+        confidence: fallbackBuy.confidence || "mittel"
+      };
+    }
+  }
+
   if (screenType === "squad") {
     if (!hasRecommendationContent(recommendations.sell)) {
       const fallbackSell = recommendationFromInsight(squadInsights.sell?.[0], "Verkaufskandidat");
@@ -224,6 +242,26 @@ function enhanceRecommendations(recommendations, squadInsights, screenType) {
       }
     }
   }
+}
+
+function firstUsefulRecommendation(items) {
+  return items.find((item) => {
+    if (!hasRecommendationContent(item)) {
+      return false;
+    }
+
+    const text = [
+      item.player,
+      item.title,
+      item.reason
+    ].join(" ").toLowerCase();
+
+    return !text.includes("budget")
+      && !text.includes("reserve")
+      && !text.includes("abwarten")
+      && !text.includes("kontostand")
+      && !text.includes("kaderwert");
+  });
 }
 
 function extractBudgetAmount(text) {
