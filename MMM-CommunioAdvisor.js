@@ -6,6 +6,8 @@ Module.register("MMM-CommunioAdvisor", {
     clubName: "Pasta La Vista FC",
     showStandings: true,
     showTransferTicker: true,
+    showLineupImage: true,
+    showRumorImage: true,
     showDebug: false
   },
 
@@ -90,7 +92,10 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     wrapper.appendChild(content);
-    wrapper.appendChild(this.buildRumorCard(data.rumorKitchen));
+    if (this.config.showLineupImage) {
+      wrapper.appendChild(this.buildLineupImage(data.lineupImage));
+    }
+    wrapper.appendChild(this.buildRumorCard(data.rumorKitchen, data.rumorImage));
     wrapper.appendChild(this.buildFooter(data));
 
     return wrapper;
@@ -232,7 +237,34 @@ Module.register("MMM-CommunioAdvisor", {
     return ticker;
   },
 
-  buildRumorCard(rumorKitchen) {
+  buildLineupImage(lineupImage) {
+    const panel = document.createElement("div");
+    panel.className = "communio-advisor__lineup";
+
+    const label = document.createElement("div");
+    label.className = "communio-advisor__card-label";
+    label.textContent = "Teamaufstellung";
+    panel.appendChild(label);
+
+    if (!lineupImage?.url) {
+      const empty = document.createElement("div");
+      empty.className = "communio-advisor__empty";
+      empty.textContent = "Noch kein Aufstellungs-Screenshot per Telegram gespeichert.";
+      panel.appendChild(empty);
+      return panel;
+    }
+
+    const image = document.createElement("img");
+    image.className = "communio-advisor__lineup-image";
+    image.src = `${lineupImage.url}?v=${encodeURIComponent(lineupImage.updatedAt || "")}`;
+    image.alt = lineupImage.alt || "Aktuelle Teamaufstellung";
+
+    panel.appendChild(image);
+
+    return panel;
+  },
+
+  buildRumorCard(rumorKitchen, rumorImage) {
     const card = document.createElement("div");
     card.className = "communio-advisor__card communio-advisor__card--rumor";
 
@@ -251,6 +283,14 @@ Module.register("MMM-CommunioAdvisor", {
     card.appendChild(label);
     card.appendChild(headline);
     card.appendChild(body);
+
+    if (this.config.showRumorImage && rumorImage?.url) {
+      const image = document.createElement("img");
+      image.className = "communio-advisor__rumor-image";
+      image.src = `${rumorImage.url}?v=${encodeURIComponent(rumorImage.updatedAt || "")}`;
+      image.alt = rumorImage.alt || "Fiktive Sportmedien-Schlagzeile";
+      card.appendChild(image);
+    }
 
     return card;
   },

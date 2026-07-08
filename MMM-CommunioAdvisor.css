@@ -97,6 +97,36 @@
   background: linear-gradient(135deg, var(--advisor-gold-soft), rgba(255, 255, 255, 0.06));
 }
 
+.communio-advisor__lineup {
+  margin-top: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(217, 170, 63, 0.22);
+  border-left: 4px solid var(--advisor-gold);
+  border-radius: 8px;
+}
+
+.communio-advisor__lineup-image {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  margin-top: 12px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 6px;
+}
+
+.communio-advisor__rumor-image {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  margin-top: 14px;
+  object-fit: cover;
+  object-position: center;
+  border: 1px solid rgba(217, 170, 63, 0.28);
+  border-radius: 6px;
+}
+
 .communio-advisor__card-label {
   color: var(--advisor-gold);
   font-size: 16px;

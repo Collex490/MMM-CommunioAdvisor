@@ -77,9 +77,19 @@
       "price": "3,2 Mio."
     }
   ],
+  "lineupImage": {
+    "url": "",
+    "alt": "Aktuelle Teamaufstellung",
+    "updatedAt": ""
+  },
   "rumorKitchen": {
     "headline": "Patron Co prüft Last-Minute-Deal",
     "body": "Aus Kreisen der Pasta-Zentrale heißt es, Gattuso fordere mehr Biss im Mittelfeld. Sporting Bolzackerer soll bereits ein Gegenangebot vorbereiten."
+  },
+  "rumorImage": {
+    "url": "",
+    "alt": "Fiktive Sportmedien-Schlagzeile",
+    "updatedAt": ""
   },
   "generatedAt": "2026-07-08T12:51:00.000Z"
 }

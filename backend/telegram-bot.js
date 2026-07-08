@@ -4,6 +4,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const TelegramBot = require("node-telegram-bot-api");
 const { analyzeScreenshot } = require("./openai-analyze");
+const { generateRumorImage } = require("./generate-rumor-image");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const dataPath = process.env.COMMUNIO_ADVISOR_DATA_PATH
@@ -11,6 +12,9 @@ const dataPath = process.env.COMMUNIO_ADVISOR_DATA_PATH
 const uploadDir = process.env.COMMUNIO_ADVISOR_UPLOAD_DIR
   || path.join(__dirname, "..", "uploads");
 const allowedChatId = process.env.TELEGRAM_ALLOWED_CHAT_ID;
+const publicUploadBase = process.env.COMMUNIO_ADVISOR_PUBLIC_UPLOAD_BASE
+  || "modules/MMM-CommunioAdvisor/uploads";
+const shouldGenerateRumorImage = process.env.COMMUNIO_ADVISOR_GENERATE_RUMOR_IMAGE === "true";
 
 if (!token) {
   throw new Error("TELEGRAM_BOT_TOKEN fehlt in der Umgebung.");
@@ -35,10 +39,40 @@ bot.on("photo", async (message) => {
     await fs.rename(downloadedPath, targetPath);
 
     const analysis = await analyzeScreenshot(targetPath);
+    const screenType = String(analysis.source?.screenType || "").toLowerCase();
+    const isLineup = screenType.includes("lineup")
+      || screenType.includes("aufstellung")
+      || screenType.includes("formation");
+
     const completeAnalysis = {
       ...analysis,
       generatedAt: analysis.generatedAt || new Date().toISOString()
     };
+
+    if (isLineup) {
+      const lineupFileName = "latest-lineup.jpg";
+      const lineupPath = path.join(uploadDir, lineupFileName);
+      await fs.copyFile(targetPath, lineupPath);
+      completeAnalysis.lineupImage = {
+        url: `${publicUploadBase}/${lineupFileName}`,
+        alt: "Aktuelle Teamaufstellung",
+        updatedAt: completeAnalysis.generatedAt
+      };
+    }
+
+    if (shouldGenerateRumorImage) {
+      const rumorImage = await generateRumorImage({
+        rumorKitchen: completeAnalysis.rumorKitchen,
+        club: completeAnalysis.club,
+        outputDir: uploadDir
+      });
+
+      completeAnalysis.rumorImage = {
+        url: `${publicUploadBase}/${rumorImage.fileName}`,
+        alt: "Fiktive Sportmedien-Schlagzeile",
+        updatedAt: completeAnalysis.generatedAt
+      };
+    }
 
     await fs.mkdir(path.dirname(dataPath), { recursive: true });
     await fs.writeFile(dataPath, JSON.stringify(completeAnalysis, null, 2), "utf8");

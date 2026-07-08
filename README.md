@@ -21,7 +21,8 @@ Das Modul zeigt:
 - Budget-Hinweis
 - Ligatabelle mit Punkten
 - Transfermarkt-Laufbanner fuer Kaeufe und Verkaeufe
-- Geruechtekueche
+- Teamaufstellung als gespeichertes Screenshot-Bild
+- Geruechtekueche mit optional generiertem Fantasy-Sportmedien-Bild
 - Zeitstempel der letzten Analyse
 
 Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar auf dem MagicMirror.
@@ -59,7 +60,9 @@ Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar 
        title: "WM Comunio",
        clubName: "Pasta La Vista FC",
        showStandings: true,
-       showTransferTicker: true
+       showTransferTicker: true,
+       showLineupImage: true,
+       showRumorImage: true
      }
    }
    ```
@@ -108,10 +111,15 @@ Die Datei `data/latest.json` enthaelt Beispielwerte. MagicMirror sollte die Kart
 
 2. Werte in `.env` setzen:
 
-   - `TELEGRAM_BOT_TOKEN`: Token vom BotFather
-   - `TELEGRAM_ALLOWED_CHAT_ID`: optional, aber empfohlen
-   - `OPENAI_API_KEY`: OpenAI API-Key
-   - `COMMUNIO_ADVISOR_DATA_PATH`: Zielpfad der JSON-Datei
+  - `TELEGRAM_BOT_TOKEN`: Token vom BotFather
+  - `TELEGRAM_ALLOWED_CHAT_ID`: optional, aber empfohlen
+  - `OPENAI_API_KEY`: OpenAI API-Key
+  - `COMMUNIO_ADVISOR_GENERATE_RUMOR_IMAGE`: `true`, wenn zu jeder Analyse ein fiktives Geruechte-Bild generiert werden soll
+  - `COMMUNIO_ADVISOR_DATA_PATH`: Zielpfad der JSON-Datei
+  - `COMMUNIO_ADVISOR_UPLOAD_DIR`: Zielordner fuer hochgeladene Screenshots
+  - `COMMUNIO_ADVISOR_PUBLIC_UPLOAD_BASE`: oeffentlicher MagicMirror-Pfad fuer Uploads
+
+Geruechtebilder sind bewusst als fiktive Parodie angelegt. Sie nutzen keine echten Logos oder 1:1-Layouts von Kicker, Transfermarkt, BILD oder anderen Medienmarken.
 
 3. Telegram-Bot starten:
 
@@ -204,9 +212,19 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
       "price": "1,4 Mio."
     }
   ],
+  "lineupImage": {
+    "url": "modules/MMM-CommunioAdvisor/uploads/latest-lineup.jpg",
+    "alt": "Aktuelle Teamaufstellung",
+    "updatedAt": "2026-07-08T12:51:00.000Z"
+  },
   "rumorKitchen": {
     "headline": "Patron Co prueft Last-Minute-Deal",
     "body": "Gattuso fordert mehr Biss im Mittelfeld."
+  },
+  "rumorImage": {
+    "url": "modules/MMM-CommunioAdvisor/uploads/latest-rumor.png",
+    "alt": "Fiktive Sportmedien-Schlagzeile",
+    "updatedAt": "2026-07-08T12:51:00.000Z"
   },
   "generatedAt": "2026-07-08T12:51:00.000Z"
 }

@@ -30,10 +30,12 @@ async function analyzeScreenshot(imagePath) {
             text: [
               "Analysiere den Screenshot.",
               "Erstelle Empfehlungen fuer buy, sell, risk und budget.",
+              "Klassifiziere source.screenType moeglichst exakt als squad, transfermarket, budget, standings oder lineup.",
               "Nutze diese Rollenspielwelt: Pasta La Vista FC, Patron Co, Gennaro Gattuso, Motto Mangia Lotta Vinci, Kapitaen Sorloth; Sporting Bolzackerer mit Mister Rob und Ruben Amorim; Squadra Absenta mit Don Rib.",
               "Wenn der Screenshot eine Tabelle zeigt, extrahiere standings als Array mit rank, name, points und isUserClub.",
               "Wenn der Screenshot Transferaktivitaet zeigt, extrahiere transferTicker als Array mit action, player, club und price.",
-              "Schema: { league, source, club, recommendations: { buy, sell, risk, budget }, standings, transferTicker, rumorKitchen, generatedAt }."
+              "Wenn der Screenshot eine Aufstellung zeigt, nutze source.screenType lineup.",
+              "Schema: { league, source, club, recommendations: { buy, sell, risk, budget }, standings, transferTicker, lineupImage, rumorKitchen, generatedAt }."
             ].join(" ")
           },
           {
