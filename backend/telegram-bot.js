@@ -22,6 +22,7 @@ const chatModes = new Map();
 const modeLabels = {
   auto: "Automatik",
   transfermarket: "Transfermarkt",
+  transfernews: "Transfernews",
   standings: "Tabelle",
   lineup: "Aufstellung",
   budget: "Budget",
@@ -47,7 +48,8 @@ function modeFromText(text) {
   const normalized = String(text || "").trim().toLowerCase();
 
   if (/^\/logo\b/.test(normalized)) return "logo";
-  if (/^\/transfers\b|^\/transfermarkt\b/.test(normalized)) return "transfermarket";
+  if (/^\/transfers\b|^\/transfernews\b/.test(normalized)) return "transfernews";
+  if (/^\/transfermarkt\b/.test(normalized)) return "transfermarket";
   if (/^\/tabelle\b|^\/standings\b/.test(normalized)) return "standings";
   if (/^\/aufstellung\b|^\/lineup\b/.test(normalized)) return "lineup";
   if (/^\/budget\b/.test(normalized)) return "budget";
@@ -61,7 +63,8 @@ function buildHelpText() {
   return [
     "ComunioAdvisor Modi:",
     "/auto - Screenshot automatisch erkennen",
-    "/transfers - Transfermarkt/Kaeufe/Verkaeufe sammeln",
+    "/transfermarkt - Marktangebote fuer Kaufempfehlung auswerten",
+    "/transfers - echte Kaeufe/Verkaeufe der Liga fuer Banner und Transfernews sammeln",
     "/tabelle - Liga-Tabelle mit Punkten speichern",
     "/aufstellung - offizielles Aufstellungsbild speichern",
     "/budget - Kontostand/Budget auswerten",
@@ -141,7 +144,8 @@ bot.onText(/\/help|\/start/, async (message) => {
 });
 
 bot.onText(/\/auto/, (message) => setModeAndReply(message, "auto"));
-bot.onText(/\/transfers|\/transfermarkt/, (message) => setModeAndReply(message, "transfermarket"));
+bot.onText(/\/transfermarkt/, (message) => setModeAndReply(message, "transfermarket"));
+bot.onText(/\/transfers|\/transfernews/, (message) => setModeAndReply(message, "transfernews"));
 bot.onText(/\/tabelle|\/standings/, (message) => setModeAndReply(message, "standings"));
 bot.onText(/\/aufstellung|\/lineup/, (message) => setModeAndReply(message, "lineup"));
 bot.onText(/\/budget/, (message) => setModeAndReply(message, "budget"));

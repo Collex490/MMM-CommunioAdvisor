@@ -83,6 +83,10 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
     .slice(0, 12);
 }
 
+function isTransferNewsScreen(screenType) {
+  return screenType === "transfernews" || screenType === "transfers";
+}
+
 function mergeStandings(previousStandings, incomingStandings) {
   const byTeam = new Map();
 
@@ -183,7 +187,9 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     club: mergeClub(previous.club, incoming.club),
     recommendations: mergeRecommendations(previous.recommendations, incoming.recommendations),
     standings: mergeStandings(previous.standings, incoming.standings),
-    transferTicker: mergeTransfers(previous.transferTicker, incoming.transferTicker),
+    transferTicker: isTransferNewsScreen(screenType)
+      ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
+      : previous.transferTicker || [],
     budgetStatus: mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus, screenType),
     squadInsights: mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
     lineupImage: incoming.lineupImage?.url ? incoming.lineupImage : previous.lineupImage,

@@ -67,6 +67,8 @@ function normalizeSource(source) {
     screenType = "lineup";
   } else if (sourceText.includes("tabelle") || sourceText.includes("standings")) {
     screenType = "standings";
+  } else if (sourceText.includes("transfernews") || sourceText.includes("transfers")) {
+    screenType = "transfernews";
   } else if (sourceText.includes("transfer")) {
     screenType = "transfermarket";
   } else if (sourceText.includes("budget") || sourceText.includes("konto")) {
