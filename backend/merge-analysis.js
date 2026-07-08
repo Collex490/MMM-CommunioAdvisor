@@ -46,11 +46,56 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
     .slice(0, 12);
 }
 
+function mergeStandings(previousStandings, incomingStandings) {
+  const byTeam = new Map();
+
+  [...(previousStandings || []), ...(incomingStandings || [])].forEach((team) => {
+    if (!team || typeof team !== "object") {
+      return;
+    }
+
+    const key = String(team.name || team.rank || "").trim().toLowerCase();
+    if (!key) {
+      return;
+    }
+
+    byTeam.set(key, {
+      ...byTeam.get(key),
+      ...team
+    });
+  });
+
+  return Array.from(byTeam.values())
+    .sort((a, b) => {
+      const rankA = Number(a.rank || 999);
+      const rankB = Number(b.rank || 999);
+      return rankA - rankB;
+    })
+    .slice(0, 12);
+}
+
+function mergeTextList(previousItems, incomingItems) {
+  const seen = new Set();
+  return [...(incomingItems || []), ...(previousItems || [])]
+    .filter((item) => {
+      const text = String(item || "").trim();
+      const key = text.toLowerCase();
+
+      if (!text || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 6);
+}
+
 function mergeSquadInsights(previous, incoming) {
   return {
-    keep: incoming?.keep?.length ? incoming.keep : previous?.keep || [],
-    sell: incoming?.sell?.length ? incoming.sell : previous?.sell || [],
-    watch: incoming?.watch?.length ? incoming.watch : previous?.watch || []
+    keep: mergeTextList(previous?.keep, incoming?.keep),
+    sell: mergeTextList(previous?.sell, incoming?.sell),
+    watch: mergeTextList(previous?.watch, incoming?.watch)
   };
 }
 
@@ -78,7 +123,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     source: incoming.source,
     club: incoming.club || previous.club,
     recommendations: mergeRecommendations(previous.recommendations, incoming.recommendations),
-    standings: incoming.standings.length ? incoming.standings : previous.standings,
+    standings: mergeStandings(previous.standings, incoming.standings),
     transferTicker: mergeTransfers(previous.transferTicker, incoming.transferTicker),
     squadInsights: mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
     lineupImage: incoming.lineupImage?.url ? incoming.lineupImage : previous.lineupImage,

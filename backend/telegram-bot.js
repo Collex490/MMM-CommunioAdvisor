@@ -53,7 +53,7 @@ function buildHelpText() {
     "/kader - Kader fuer Halten/Verkaufen/Tauschen auswerten",
     "/status - letzte Analyse anzeigen",
     "",
-    "Tipp: Modus setzen und danach 1 bis mehrere Screenshots schicken."
+    "Tipp: Modus setzen und danach 1 bis 3 Screenshots schicken. Der Bot sammelt passende Daten und aktualisiert die Tagesuebersicht."
   ].join("\n");
 }
 
@@ -81,7 +81,7 @@ bot.on("photo", async (message) => {
     }
 
     const chatMode = getChatMode(message.chat.id);
-    await bot.sendMessage(message.chat.id, `Screenshot erhalten. Modus: ${modeLabels[chatMode]}. Ich analysiere...`);
+    await bot.sendMessage(message.chat.id, `Screenshot erhalten. Modus: ${modeLabels[chatMode]}. Ich analysiere und fuege es zur Tagesuebersicht hinzu...`);
 
     const photo = message.photo[message.photo.length - 1];
     await fs.mkdir(uploadDir, { recursive: true });

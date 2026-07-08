@@ -135,7 +135,7 @@ Der Bot speichert die aktuelle Tagesuebersicht in `data/latest.json`. MagicMirro
 
 ### Telegram-Modi
 
-Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Fuer Version 1 ist es aber zuverlaessiger, vorher einen Modus zu setzen:
+Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Fuer Version 1 ist es aber zuverlaessiger, vorher einen Modus zu setzen. Pro Modus koennen auch 2-3 Screenshots nacheinander geschickt werden; der Bot fuegt passende Daten zur Tagesuebersicht zusammen.
 
 ```text
 /auto
@@ -166,6 +166,8 @@ Danach die offizielle Aufstellung schicken. Der Bot speichert sie als `uploads/l
 ```
 
 Danach den Kader schicken. Der Bot fuellt den Kader-Check mit Halten, Verkaufen/Tauschen und Beobachten.
+
+Auch bei `/tabelle`, `/budget` und `/kader` duerfen mehrere Screenshots nacheinander kommen, wenn nicht alles auf ein Bild passt.
 
 ## Lokaler API-Modus
 
