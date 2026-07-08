@@ -99,6 +99,18 @@ function mergeSquadInsights(previous, incoming) {
   };
 }
 
+function mergeClub(previousClub, incomingClub) {
+  const previous = previousClub && typeof previousClub === "object" ? previousClub : {};
+  const incoming = incomingClub && typeof incomingClub === "object" ? incomingClub : {};
+
+  return {
+    ...previous,
+    ...incoming,
+    captain: previous.captain || incoming.captain || "Sorloth",
+    logo: previous.logo?.url ? previous.logo : incoming.logo
+  };
+}
+
 async function readExistingAnalysis(dataPath) {
   try {
     const content = await fs.readFile(dataPath, "utf8");
@@ -121,7 +133,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     ...previous,
     league: incoming.league || previous.league,
     source: incoming.source,
-    club: incoming.club || previous.club,
+    club: mergeClub(previous.club, incoming.club),
     recommendations: mergeRecommendations(previous.recommendations, incoming.recommendations),
     standings: mergeStandings(previous.standings, incoming.standings),
     transferTicker: mergeTransfers(previous.transferTicker, incoming.transferTicker),
