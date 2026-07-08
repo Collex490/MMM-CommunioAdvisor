@@ -5,6 +5,7 @@ const path = require("path");
 const TelegramBot = require("node-telegram-bot-api");
 const { analyzeScreenshot } = require("./openai-analyze");
 const { generateRumorImage } = require("./generate-rumor-image");
+const { normalizeAnalysis } = require("./normalize-analysis");
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const dataPath = process.env.COMMUNIO_ADVISOR_DATA_PATH
@@ -38,7 +39,7 @@ bot.on("photo", async (message) => {
     const targetPath = path.join(uploadDir, `${Date.now()}-${path.basename(downloadedPath)}.jpg`);
     await fs.rename(downloadedPath, targetPath);
 
-    const analysis = await analyzeScreenshot(targetPath);
+    const analysis = normalizeAnalysis(await analyzeScreenshot(targetPath));
     const screenType = String(analysis.source?.screenType || "").toLowerCase();
     const isLineup = screenType.includes("lineup")
       || screenType.includes("aufstellung")

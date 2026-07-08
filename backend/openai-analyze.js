@@ -35,7 +35,8 @@ async function analyzeScreenshot(imagePath) {
               "Wenn der Screenshot eine Tabelle zeigt, extrahiere standings als Array mit rank, name, points und isUserClub.",
               "Wenn der Screenshot Transferaktivitaet zeigt, extrahiere transferTicker als Array mit action, player, club und price.",
               "Wenn der Screenshot eine Aufstellung zeigt, nutze source.screenType lineup.",
-              "Schema: { league, source, club, recommendations: { buy, sell, risk, budget }, standings, transferTicker, lineupImage, rumorKitchen, generatedAt }."
+              "Nutze exakt dieses JSON-Schema: { league: string, source: { platform: string, screenType: string }, club: { name: string, boss: string, coach: string, colors: string[], motto: string, captain: string }, recommendations: { buy: { player: string, reason: string, confidence: string }, sell: { player: string, reason: string, confidence: string }, risk: { player: string, reason: string, confidence: string }, budget: { title: string, reason: string, confidence: string } }, standings: array, transferTicker: array, lineupImage: object, rumorKitchen: { headline: string, body: string }, generatedAt: string }.",
+              "Keine Arrays fuer recommendations.buy, recommendations.sell, recommendations.risk oder rumorKitchen verwenden."
             ].join(" ")
           },
           {
