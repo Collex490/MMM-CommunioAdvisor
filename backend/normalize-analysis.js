@@ -152,6 +152,7 @@ function normalizeStandings(standings) {
 function normalizeAnalysis(analysis) {
   const recommendations = analysis.recommendations || {};
   const squadInsights = normalizeSquadInsights(analysis.squadInsights);
+  const marketCandidates = normalizeMarketCandidates(analysis.marketCandidates || analysis.transferMarket || analysis.marketPlayers);
   const source = normalizeSource(analysis.source);
   const normalizedRecommendations = {
     buy: normalizeRecommendation(recommendations.buy, "Kaufempfehlung offen"),
@@ -159,7 +160,7 @@ function normalizeAnalysis(analysis) {
     risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
     budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
   };
-  enhanceRecommendations(normalizedRecommendations, squadInsights, source.screenType);
+  enhanceRecommendations(normalizedRecommendations, squadInsights, marketCandidates, source.screenType);
 
   return {
     ...analysis,
@@ -167,6 +168,7 @@ function normalizeAnalysis(analysis) {
     source,
     club: normalizeClub(analysis.club),
     recommendations: normalizedRecommendations,
+    marketCandidates,
     standings: normalizeStandings(analysis.standings),
     transferTicker: Array.isArray(analysis.transferTicker) ? analysis.transferTicker : [],
     budgetStatus: normalizeBudgetStatus(analysis.budgetStatus || analysis.budget, normalizedRecommendations.budget),
@@ -209,7 +211,61 @@ function recommendationFromInsight(text, fallbackTitle) {
   };
 }
 
-function enhanceRecommendations(recommendations, squadInsights, screenType) {
+function normalizeMarketCandidates(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item, index) => {
+      if (typeof item === "string") {
+        return {
+          player: item,
+          reason: "Sichtbarer Kandidat auf dem Transfermarkt.",
+          priority: index + 1
+        };
+      }
+
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      return {
+        player: item.player || item.name || item.title || "",
+        price: item.price || item.marketValue || item.value || "",
+        seller: item.seller || item.club || "",
+        reason: item.reason || item.detail || item.assessment || "Sichtbarer Kandidat auf dem Transfermarkt.",
+        priority: normalizeNumberLike(item.priority) ?? index + 1
+      };
+    })
+    .filter((item) => item?.player)
+    .sort((a, b) => a.priority - b.priority)
+    .slice(0, 8);
+}
+
+function recommendationFromMarketCandidate(candidate) {
+  if (!candidate?.player) {
+    return null;
+  }
+
+  const price = candidate.price ? ` Preis: ${candidate.price}.` : "";
+  const seller = candidate.seller ? ` Anbieter: ${candidate.seller}.` : "";
+  return {
+    player: candidate.player,
+    title: "Kaufempfehlung",
+    reason: `${candidate.reason}${price}${seller}`.trim(),
+    confidence: "mittel"
+  };
+}
+
+function enhanceRecommendations(recommendations, squadInsights, marketCandidates, screenType) {
+  if (screenType === "transfermarket" && !hasRecommendationContent(recommendations.buy)) {
+    const fallbackBuy = recommendationFromMarketCandidate(marketCandidates[0]);
+    if (fallbackBuy) {
+      recommendations.buy = fallbackBuy;
+    }
+  }
+
   if (screenType === "squad") {
     if (!hasRecommendationContent(recommendations.sell)) {
       const fallbackSell = recommendationFromInsight(squadInsights.sell?.[0], "Verkaufskandidat");

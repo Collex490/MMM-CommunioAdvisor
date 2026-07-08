@@ -60,6 +60,21 @@ function mergeRecommendations(previous, incoming) {
   return result;
 }
 
+function recommendationFromMarketCandidate(candidate) {
+  if (!candidate?.player) {
+    return null;
+  }
+
+  const price = candidate.price ? ` Preis: ${candidate.price}.` : "";
+  const seller = candidate.seller ? ` Anbieter: ${candidate.seller}.` : "";
+  return {
+    player: candidate.player,
+    title: "Kaufempfehlung",
+    reason: `${candidate.reason || "Bester sichtbarer Kandidat auf dem Transfermarkt."}${price}${seller}`.trim(),
+    confidence: "mittel"
+  };
+}
+
 function mergeTransfers(previousTransfers, incomingTransfers) {
   const seen = new Set();
   const combined = [...(incomingTransfers || []), ...(previousTransfers || [])];
@@ -91,6 +106,27 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
       seen.add(key);
       return Boolean(item.player || item.action);
     })
+    .slice(0, 12);
+}
+
+function mergeMarketCandidates(previousCandidates, incomingCandidates) {
+  const seen = new Set();
+  return [...(incomingCandidates || []), ...(previousCandidates || [])]
+    .filter((item) => {
+      const key = [
+        item.player || "",
+        item.price || "",
+        item.seller || ""
+      ].join("|").toLowerCase();
+
+      if (!item.player || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => Number(a.priority || 999) - Number(b.priority || 999))
     .slice(0, 12);
 }
 
@@ -191,12 +227,25 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     return incoming;
   }
 
+  const marketCandidates = screenType === "transfermarket"
+    ? mergeMarketCandidates(previous.marketCandidates, incoming.marketCandidates)
+    : previous.marketCandidates || [];
+  const recommendations = mergeRecommendations(previous.recommendations, incoming.recommendations);
+
+  if (screenType === "transfermarket" && !hasUsefulRecommendation(recommendations.buy)) {
+    const buyFromMarket = recommendationFromMarketCandidate(marketCandidates[0]);
+    if (buyFromMarket) {
+      recommendations.buy = buyFromMarket;
+    }
+  }
+
   return {
     ...previous,
     league: incoming.league || previous.league,
     source: incoming.source,
     club: mergeClub(previous.club, incoming.club),
-    recommendations: mergeRecommendations(previous.recommendations, incoming.recommendations),
+    recommendations,
+    marketCandidates,
     standings: mergeStandings(previous.standings, incoming.standings),
     transferTicker: isTransferNewsScreen(screenType)
       ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
