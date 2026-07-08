@@ -248,8 +248,10 @@
     topGrid.appendChild(side);
     shell.appendChild(topGrid);
 
-    shell.appendChild(squad(data));
-    shell.appendChild(rumor(data));
+    const bottomGrid = el("div", "ipad-advisor__bottom-grid");
+    bottomGrid.appendChild(squad(data));
+    bottomGrid.appendChild(rumor(data));
+    shell.appendChild(bottomGrid);
     const timestamp = data.generatedAt ? new Date(data.generatedAt).toLocaleString("de-DE") : "unbekannt";
     shell.appendChild(el("footer", "ipad-advisor__footer", `Letzte Analyse: ${timestamp}`));
     app.appendChild(shell);
