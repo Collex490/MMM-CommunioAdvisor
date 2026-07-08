@@ -125,28 +125,32 @@ Module.register("MMM-CommunioAdvisor", {
     eyebrow.className = "communio-advisor__eyebrow";
     eyebrow.textContent = data.league || this.config.title;
 
-    const title = document.createElement("div");
-    title.className = "communio-advisor__title";
-    title.textContent = data.club?.name || this.config.clubName;
-
-    const motto = document.createElement("div");
-    motto.className = "communio-advisor__motto";
-    motto.textContent = data.club?.motto || "Mangia, Lotta, Vinci";
-
-    titleBlock.appendChild(eyebrow);
-    titleBlock.appendChild(title);
-    titleBlock.appendChild(motto);
-
-    const identity = document.createElement("div");
-    identity.className = "communio-advisor__identity";
+    const titleRow = document.createElement("div");
+    titleRow.className = "communio-advisor__title-row";
 
     if (data.club?.logo?.url) {
       const logo = document.createElement("img");
       logo.className = "communio-advisor__logo";
       logo.src = `${data.club.logo.url}?v=${encodeURIComponent(data.club.logo.updatedAt || "")}`;
       logo.alt = `${data.club?.name || this.config.clubName} Logo`;
-      identity.appendChild(logo);
+      titleRow.appendChild(logo);
     }
+
+    const title = document.createElement("div");
+    title.className = "communio-advisor__title";
+    title.textContent = data.club?.name || this.config.clubName;
+    titleRow.appendChild(title);
+
+    const motto = document.createElement("div");
+    motto.className = "communio-advisor__motto";
+    motto.textContent = data.club?.motto || "Mangia, Lotta, Vinci";
+
+    titleBlock.appendChild(eyebrow);
+    titleBlock.appendChild(titleRow);
+    titleBlock.appendChild(motto);
+
+    const identity = document.createElement("div");
+    identity.className = "communio-advisor__identity";
 
     const badge = document.createElement("div");
     badge.className = "communio-advisor__badge";

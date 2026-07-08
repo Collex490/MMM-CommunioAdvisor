@@ -46,10 +46,16 @@
 }
 
 .communio-advisor__title {
-  margin-top: 4px;
   font-size: 34px;
   line-height: 1.05;
   font-weight: 700;
+}
+
+.communio-advisor__title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
 }
 
 .communio-advisor__motto {
@@ -78,13 +84,14 @@
 }
 
 .communio-advisor__logo {
-  width: 58px;
-  height: 58px;
+  width: 82px;
+  height: 82px;
   object-fit: contain;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(217, 170, 63, 0.32);
-  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  mix-blend-mode: multiply;
 }
 
 .communio-advisor__grid {
