@@ -132,14 +132,16 @@ function normalizeStandings(standings) {
         team.matchdayPoints ?? team.lastMatchdayPoints ?? team.dayPoints ?? team.currentPoints ?? team.gameweekPoints
       );
 
+      const name = team.name || team.team || team.club || "Unbekannt";
+
       return {
         ...team,
         rank: normalizeNumberLike(team.rank) ?? index + 1,
-        name: team.name || team.team || team.club || "Unbekannt",
+        name,
         matchdayPoints,
         totalPoints,
         marketValue: team.marketValue || team.value || team.teamValue || "",
-        isUserClub: Boolean(team.isUserClub)
+        isUserClub: Boolean(team.isUserClub) || name.trim().toLowerCase() === "pasta la vista fc"
       };
     })
     .filter(Boolean);

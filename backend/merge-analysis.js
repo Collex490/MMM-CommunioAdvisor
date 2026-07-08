@@ -106,10 +106,12 @@ function mergeBudgetStatus(previous, incoming) {
 function mergeClub(previousClub, incomingClub) {
   const previous = previousClub && typeof previousClub === "object" ? previousClub : {};
   const incoming = incomingClub && typeof incomingClub === "object" ? incomingClub : {};
+  const fixedName = previous.name || "Pasta La Vista FC";
 
   return {
-    ...previous,
     ...incoming,
+    ...previous,
+    name: fixedName,
     captain: previous.captain || incoming.captain || "Sorloth",
     logo: previous.logo?.url ? previous.logo : incoming.logo
   };

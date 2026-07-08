@@ -120,6 +120,7 @@ Module.register("MMM-CommunioAdvisor", {
     const header = document.createElement("div");
     header.className = "communio-advisor__header";
     const logoUrl = this.getClubLogoUrl(data);
+    const clubName = this.config.clubName || "Pasta La Vista FC";
 
     const titleBlock = document.createElement("div");
 
@@ -134,13 +135,13 @@ Module.register("MMM-CommunioAdvisor", {
       const logo = document.createElement("img");
       logo.className = "communio-advisor__logo";
       logo.src = `${logoUrl}?v=${encodeURIComponent(data.club?.logo?.updatedAt || data.generatedAt || "")}`;
-      logo.alt = `${data.club?.name || this.config.clubName} Logo`;
+      logo.alt = `${clubName} Logo`;
       titleRow.appendChild(logo);
     }
 
     const title = document.createElement("div");
     title.className = "communio-advisor__title";
-    title.textContent = data.club?.name || this.config.clubName;
+    title.textContent = clubName;
     titleRow.appendChild(title);
 
     const motto = document.createElement("div");
@@ -210,7 +211,11 @@ Module.register("MMM-CommunioAdvisor", {
     const strip = document.createElement("div");
     strip.className = "communio-advisor__status-strip";
 
-    const ownTeam = (data.standings || []).find((team) => team.isUserClub || team.name === (data.club?.name || this.config.clubName));
+    const clubName = (this.config.clubName || "Pasta La Vista FC").trim().toLowerCase();
+    const ownTeam = (data.standings || []).find((team) => {
+      const teamName = String(team.name || "").trim().toLowerCase();
+      return teamName === clubName || team.isUserClub;
+    });
     const budget = data.budgetStatus || {};
     const ownTotalPoints = ownTeam?.totalPoints ?? ownTeam?.points;
     const items = [
@@ -258,7 +263,7 @@ Module.register("MMM-CommunioAdvisor", {
     standings.slice(0, 6).forEach((team, index) => {
       const row = document.createElement("div");
       row.className = "communio-advisor__standing-row";
-      if (team.name === this.config.clubName || team.isUserClub) {
+      if (String(team.name || "").trim().toLowerCase() === String(this.config.clubName || "").trim().toLowerCase() || team.isUserClub) {
         row.className += " communio-advisor__standing-row--own";
       }
 
