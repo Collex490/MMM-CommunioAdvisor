@@ -106,6 +106,35 @@
   border-radius: 8px;
 }
 
+.communio-advisor__squad {
+  margin-top: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(217, 170, 63, 0.22);
+  border-left: 4px solid var(--advisor-gold);
+  border-radius: 8px;
+}
+
+.communio-advisor__squad-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--advisor-muted);
+  font-size: 18px;
+  line-height: 1.22;
+}
+
+.communio-advisor__squad-row span {
+  color: var(--advisor-gold);
+  font-weight: 700;
+}
+
+.communio-advisor__squad-row strong {
+  color: var(--advisor-text);
+  font-weight: 400;
+}
+
 .communio-advisor__lineup-image {
   display: block;
   width: 100%;

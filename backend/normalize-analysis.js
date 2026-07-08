@@ -5,6 +5,14 @@ function firstItem(value) {
 function normalizeRecommendation(value, fallbackTitle) {
   const item = firstItem(value);
 
+  if (typeof item === "string") {
+    return {
+      title: fallbackTitle,
+      reason: item,
+      confidence: "mittel"
+    };
+  }
+
   if (!item || typeof item !== "object") {
     return {
       title: fallbackTitle,
@@ -23,6 +31,13 @@ function normalizeRecommendation(value, fallbackTitle) {
 
 function normalizeRumorKitchen(value) {
   const item = firstItem(value);
+
+  if (typeof item === "string") {
+    return {
+      headline: item,
+      body: "Die Geruechtekueche brodelt weiter rund um Pasta La Vista FC."
+    };
+  }
 
   if (!item || typeof item !== "object") {
     return {
@@ -104,8 +119,45 @@ function normalizeAnalysis(analysis) {
     },
     standings: Array.isArray(analysis.standings) ? analysis.standings : [],
     transferTicker: Array.isArray(analysis.transferTicker) ? analysis.transferTicker : [],
+    squadInsights: normalizeSquadInsights(analysis.squadInsights),
     rumorKitchen: normalizeRumorKitchen(analysis.rumorKitchen),
     generatedAt: analysis.generatedAt || new Date().toISOString()
+  };
+}
+
+function normalizeTextList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return item;
+      }
+
+      if (item && typeof item === "object") {
+        return item.player && item.reason ? `${item.player}: ${item.reason}` : item.reason || item.player || item.title;
+      }
+
+      return "";
+    })
+    .filter(Boolean);
+}
+
+function normalizeSquadInsights(value) {
+  if (!value || typeof value !== "object") {
+    return {
+      keep: [],
+      sell: [],
+      watch: []
+    };
+  }
+
+  return {
+    keep: normalizeTextList(value.keep || value.hold || value.playersToKeep),
+    sell: normalizeTextList(value.sell || value.playersToSell),
+    watch: normalizeTextList(value.watch || value.risks || value.playersToWatch)
   };
 }
 

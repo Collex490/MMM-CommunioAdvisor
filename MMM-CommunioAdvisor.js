@@ -8,6 +8,7 @@ Module.register("MMM-CommunioAdvisor", {
     showTransferTicker: true,
     showLineupImage: true,
     showRumorImage: true,
+    showSquadInsights: true,
     showDebug: false
   },
 
@@ -92,6 +93,9 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     wrapper.appendChild(content);
+    if (this.config.showSquadInsights) {
+      wrapper.appendChild(this.buildSquadInsights(data.squadInsights));
+    }
     if (this.config.showLineupImage) {
       wrapper.appendChild(this.buildLineupImage(data.lineupImage));
     }
@@ -235,6 +239,51 @@ Module.register("MMM-CommunioAdvisor", {
     ticker.appendChild(track);
 
     return ticker;
+  },
+
+  buildSquadInsights(squadInsights) {
+    const insights = squadInsights || {};
+    const hasData = ["keep", "sell", "watch"].some((key) => Array.isArray(insights[key]) && insights[key].length);
+    const panel = document.createElement("div");
+    panel.className = "communio-advisor__squad";
+
+    const label = document.createElement("div");
+    label.className = "communio-advisor__card-label";
+    label.textContent = "Kader-Check";
+    panel.appendChild(label);
+
+    if (!hasData) {
+      const empty = document.createElement("div");
+      empty.className = "communio-advisor__empty";
+      empty.textContent = "Noch kein Kader-Screenshot ausgewertet.";
+      panel.appendChild(empty);
+      return panel;
+    }
+
+    [
+      ["Halten", insights.keep],
+      ["Verkaufen/Tauschen", insights.sell],
+      ["Beobachten", insights.watch]
+    ].forEach(([title, items]) => {
+      if (!Array.isArray(items) || !items.length) {
+        return;
+      }
+
+      const row = document.createElement("div");
+      row.className = "communio-advisor__squad-row";
+
+      const rowTitle = document.createElement("span");
+      rowTitle.textContent = title;
+
+      const rowText = document.createElement("strong");
+      rowText.textContent = items.slice(0, 2).join(" + ");
+
+      row.appendChild(rowTitle);
+      row.appendChild(rowText);
+      panel.appendChild(row);
+    });
+
+    return panel;
   },
 
   buildLineupImage(lineupImage) {

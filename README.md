@@ -22,6 +22,7 @@ Das Modul zeigt:
 - Ligatabelle mit Punkten
 - Transfermarkt-Laufbanner fuer Kaeufe und Verkaeufe
 - Teamaufstellung als gespeichertes Screenshot-Bild
+- Kader-Check fuer Halten, Verkaufen/Tauschen und Beobachten
 - Geruechtekueche mit optional generiertem Fantasy-Sportmedien-Bild
 - Zeitstempel der letzten Analyse
 
@@ -62,6 +63,7 @@ Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar 
        showStandings: true,
        showTransferTicker: true,
        showLineupImage: true,
+       showSquadInsights: true,
        showRumorImage: true
      }
    }
@@ -129,7 +131,41 @@ Geruechtebilder sind bewusst als fiktive Parodie angelegt. Sie nutzen keine echt
 
 4. Screenshot an den Bot senden.
 
-Der Bot speichert die aktuelle Analyse in `data/latest.json`. MagicMirror liest diese Datei automatisch nach.
+Der Bot speichert die aktuelle Tagesuebersicht in `data/latest.json`. MagicMirror liest diese Datei automatisch nach.
+
+### Telegram-Modi
+
+Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Fuer Version 1 ist es aber zuverlaessiger, vorher einen Modus zu setzen:
+
+```text
+/auto
+/transfers
+/tabelle
+/aufstellung
+/budget
+/kader
+/status
+```
+
+Beispiele:
+
+```text
+/transfers
+```
+
+Danach 2-3 Transfermarkt-Screenshots schicken. Der Bot sammelt die erkannten Kaeufe und Verkaeufe im Transfermarkt-Banner.
+
+```text
+/aufstellung
+```
+
+Danach die offizielle Aufstellung schicken. Der Bot speichert sie als `uploads/latest-lineup.jpg` und zeigt sie auf dem MagicMirror an.
+
+```text
+/kader
+```
+
+Danach den Kader schicken. Der Bot fuellt den Kader-Check mit Halten, Verkaufen/Tauschen und Beobachten.
 
 ## Lokaler API-Modus
 
@@ -216,6 +252,11 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
     "url": "modules/MMM-CommunioAdvisor/uploads/latest-lineup.jpg",
     "alt": "Aktuelle Teamaufstellung",
     "updatedAt": "2026-07-08T12:51:00.000Z"
+  },
+  "squadInsights": {
+    "keep": ["Sorloth halten"],
+    "sell": ["Bankspieler ohne Einsatzgarantie pruefen"],
+    "watch": ["Rotation im Mittelfeld beobachten"]
   },
   "rumorKitchen": {
     "headline": "Patron Co prueft Last-Minute-Deal",
