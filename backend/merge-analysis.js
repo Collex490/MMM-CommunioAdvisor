@@ -26,7 +26,13 @@ function hasUsefulRecommendation(recommendation) {
     "nur das budget",
     "nur die tabelle",
     "keine spielerwerte",
-    "keine kaderdaten"
+    "keine kaderdaten",
+    "keine begruendung erkannt",
+    "keine begründung erkannt",
+    "kaufempfehlung offen",
+    "verkaufskandidat offen",
+    "startelf-risiko offen",
+    "budget-hinweis offen"
   ];
 
   if (blockedPhrases.some((phrase) => text.includes(phrase))) {
@@ -37,7 +43,13 @@ function hasUsefulRecommendation(recommendation) {
 }
 
 function mergeRecommendations(previous, incoming) {
-  const result = { ...(previous || {}) };
+  const result = {};
+
+  ["buy", "sell", "risk", "budget"].forEach((key) => {
+    if (hasUsefulRecommendation(previous?.[key])) {
+      result[key] = previous[key];
+    }
+  });
 
   ["buy", "sell", "risk", "budget"].forEach((key) => {
     if (hasUsefulRecommendation(incoming?.[key])) {
@@ -124,7 +136,11 @@ function mergeSquadInsights(previous, incoming) {
   };
 }
 
-function mergeBudgetStatus(previous, incoming) {
+function mergeBudgetStatus(previous, incoming, screenType) {
+  if (screenType !== "budget") {
+    return previous || {};
+  }
+
   return incoming?.amount ? incoming : previous || {};
 }
 
@@ -168,7 +184,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     recommendations: mergeRecommendations(previous.recommendations, incoming.recommendations),
     standings: mergeStandings(previous.standings, incoming.standings),
     transferTicker: mergeTransfers(previous.transferTicker, incoming.transferTicker),
-    budgetStatus: mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus),
+    budgetStatus: mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus, screenType),
     squadInsights: mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
     lineupImage: incoming.lineupImage?.url ? incoming.lineupImage : previous.lineupImage,
     rumorKitchen: incoming.rumorKitchen || previous.rumorKitchen,
