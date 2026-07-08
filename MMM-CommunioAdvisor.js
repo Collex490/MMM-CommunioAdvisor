@@ -11,6 +11,7 @@ Module.register("MMM-CommunioAdvisor", {
     showSquadInsights: true,
     nextMatchdayAt: "",
     nextMatchdayLabel: "Nächster Spieltag",
+    matchdays: [],
     showDebug: false
   },
 
@@ -282,7 +283,11 @@ Module.register("MMM-CommunioAdvisor", {
   },
 
   getMatchdayStatus(data) {
-    const matchday = data.nextMatchday || {};
+    const matchday = this.getNextMatchday(data);
+    if (!matchday) {
+      return null;
+    }
+
     const nextAt = matchday.at || matchday.date || this.config.nextMatchdayAt;
 
     if (!nextAt) {
@@ -319,6 +324,33 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     return { label, value: `${minutes}Min` };
+  },
+
+  getNextMatchday(data) {
+    const configuredMatchdays = Array.isArray(this.config.matchdays) ? this.config.matchdays : [];
+    const dataMatchdays = Array.isArray(data.matchdays) ? data.matchdays : [];
+    const matchdays = [...dataMatchdays, ...configuredMatchdays]
+      .filter((matchday) => matchday && (matchday.at || matchday.date))
+      .sort((a, b) => new Date(a.at || a.date).getTime() - new Date(b.at || b.date).getTime());
+
+    const now = Date.now();
+    const upcoming = matchdays.find((matchday) => {
+      const time = new Date(matchday.at || matchday.date).getTime();
+      return Number.isFinite(time) && time > now - 3 * 60 * 60 * 1000;
+    });
+
+    if (upcoming) {
+      return upcoming;
+    }
+
+    if (data.nextMatchday || this.config.nextMatchdayAt) {
+      return data.nextMatchday || {
+        at: this.config.nextMatchdayAt,
+        label: this.config.nextMatchdayLabel
+      };
+    }
+
+    return null;
   },
 
   buildStandings(standings) {
