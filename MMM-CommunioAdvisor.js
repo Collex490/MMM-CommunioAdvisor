@@ -137,12 +137,24 @@ Module.register("MMM-CommunioAdvisor", {
     titleBlock.appendChild(title);
     titleBlock.appendChild(motto);
 
+    const identity = document.createElement("div");
+    identity.className = "communio-advisor__identity";
+
+    if (data.club?.logo?.url) {
+      const logo = document.createElement("img");
+      logo.className = "communio-advisor__logo";
+      logo.src = `${data.club.logo.url}?v=${encodeURIComponent(data.club.logo.updatedAt || "")}`;
+      logo.alt = `${data.club?.name || this.config.clubName} Logo`;
+      identity.appendChild(logo);
+    }
+
     const badge = document.createElement("div");
     badge.className = "communio-advisor__badge";
     badge.textContent = data.club?.captain ? `C ${data.club.captain}` : "WM 2026";
+    identity.appendChild(badge);
 
     header.appendChild(titleBlock);
-    header.appendChild(badge);
+    header.appendChild(identity);
 
     return header;
   },

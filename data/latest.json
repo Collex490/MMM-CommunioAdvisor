@@ -10,7 +10,12 @@
     "coach": "Gennaro Gattuso",
     "colors": ["Schwarz", "Gold"],
     "motto": "Mangia, Lotta, Vinci",
-    "captain": "Sorloth"
+    "captain": "Sorloth",
+    "logo": {
+      "url": "",
+      "alt": "Pasta La Vista FC Logo",
+      "updatedAt": ""
+    }
   },
   "recommendations": {
     "buy": {
@@ -81,6 +86,17 @@
     "url": "",
     "alt": "Aktuelle Teamaufstellung",
     "updatedAt": ""
+  },
+  "squadInsights": {
+    "keep": [
+      "Sorloth als Kapitaen und Fixpunkt halten"
+    ],
+    "sell": [
+      "Bankspieler ohne Einsatzgarantie fuer Budget pruefen"
+    ],
+    "watch": [
+      "Rotation im Mittelfeld vor dem Spieltag beobachten"
+    ]
   },
   "rumorKitchen": {
     "headline": "Patron Co prüft Last-Minute-Deal",

@@ -25,7 +25,8 @@ const modeLabels = {
   standings: "Tabelle",
   lineup: "Aufstellung",
   budget: "Budget",
-  squad: "Kader"
+  squad: "Kader",
+  logo: "Vereinslogo"
 };
 
 if (!token) {
@@ -51,10 +52,47 @@ function buildHelpText() {
     "/aufstellung - offizielles Aufstellungsbild speichern",
     "/budget - Kontostand/Budget auswerten",
     "/kader - Kader fuer Halten/Verkaufen/Tauschen auswerten",
+    "/kapitaen Name - Kapitaen oben rechts setzen",
+    "/logo - naechstes Bild als Vereinslogo speichern",
     "/status - letzte Analyse anzeigen",
     "",
     "Tipp: Modus setzen und danach 1 bis 3 Screenshots schicken. Der Bot sammelt passende Daten und aktualisiert die Tagesuebersicht."
   ].join("\n");
+}
+
+async function readCurrentAnalysis() {
+  try {
+    const content = await fs.readFile(dataPath, "utf8");
+    return JSON.parse(content);
+  } catch {
+    return {};
+  }
+}
+
+async function writeCurrentAnalysis(data) {
+  const nextData = {
+    ...data,
+    generatedAt: new Date().toISOString()
+  };
+
+  await fs.mkdir(path.dirname(dataPath), { recursive: true });
+  await fs.writeFile(dataPath, JSON.stringify(nextData, null, 2), "utf8");
+  return nextData;
+}
+
+function normalizeClubForUpdate(data) {
+  if (data.club && typeof data.club === "object") {
+    return data.club;
+  }
+
+  return {
+    name: data.club || "Pasta La Vista FC",
+    boss: "Patron Co",
+    coach: "Gennaro Gattuso",
+    colors: ["Schwarz", "Gold"],
+    motto: "Mangia, Lotta, Vinci",
+    captain: "Sorloth"
+  };
 }
 
 async function setModeAndReply(message, mode) {
@@ -72,6 +110,22 @@ bot.onText(/\/tabelle|\/standings/, (message) => setModeAndReply(message, "stand
 bot.onText(/\/aufstellung|\/lineup/, (message) => setModeAndReply(message, "lineup"));
 bot.onText(/\/budget/, (message) => setModeAndReply(message, "budget"));
 bot.onText(/\/kader|\/squad/, (message) => setModeAndReply(message, "squad"));
+bot.onText(/\/logo/, (message) => setModeAndReply(message, "logo"));
+
+bot.onText(/\/kapitaen(?:\s+(.+))?/, async (message, match) => {
+  const captain = (match?.[1] || "").trim();
+
+  if (!captain) {
+    await bot.sendMessage(message.chat.id, "Bitte so senden: /kapitaen Sorloth");
+    return;
+  }
+
+  const current = await readCurrentAnalysis();
+  const club = normalizeClubForUpdate(current);
+  club.captain = captain;
+  await writeCurrentAnalysis({ ...current, club });
+  await bot.sendMessage(message.chat.id, `Kapitän aktualisiert: ${captain}`);
+});
 
 bot.on("photo", async (message) => {
   try {
@@ -89,6 +143,24 @@ bot.on("photo", async (message) => {
     const downloadedPath = await bot.downloadFile(photo.file_id, uploadDir);
     const targetPath = path.join(uploadDir, `${Date.now()}-${path.basename(downloadedPath)}.jpg`);
     await fs.rename(downloadedPath, targetPath);
+
+    if (chatMode === "logo") {
+      const logoFileName = "club-logo.jpg";
+      const logoPath = path.join(uploadDir, logoFileName);
+      await fs.copyFile(targetPath, logoPath);
+
+      const current = await readCurrentAnalysis();
+      const club = normalizeClubForUpdate(current);
+      club.logo = {
+        url: `${publicUploadBase}/${logoFileName}`,
+        alt: `${club.name || "Pasta La Vista FC"} Logo`,
+        updatedAt: new Date().toISOString()
+      };
+
+      await writeCurrentAnalysis({ ...current, club });
+      await bot.sendMessage(message.chat.id, "Vereinslogo gespeichert. MagicMirror aktualisiert sich gleich.");
+      return;
+    }
 
     const analysis = normalizeAnalysis(await analyzeScreenshot(targetPath, { screenTypeHint: chatMode }));
     if (chatMode !== "auto") {

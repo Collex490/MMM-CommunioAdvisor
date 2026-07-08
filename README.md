@@ -144,6 +144,8 @@ Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Fuer V
 /aufstellung
 /budget
 /kader
+/kapitaen Sorloth
+/logo
 /status
 ```
 
@@ -166,6 +168,18 @@ Danach die offizielle Aufstellung schicken. Der Bot speichert sie als `uploads/l
 ```
 
 Danach den Kader schicken. Der Bot fuellt den Kader-Check mit Halten, Verkaufen/Tauschen und Beobachten.
+
+```text
+/kapitaen Sorloth
+```
+
+Setzt den Kapitaen oben rechts im Modul.
+
+```text
+/logo
+```
+
+Danach ein Logo-Bild schicken. Der Bot speichert es als `uploads/club-logo.jpg` und zeigt es oben rechts neben dem Kapitaen an.
 
 Auch bei `/tabelle`, `/budget` und `/kader` duerfen mehrere Screenshots nacheinander kommen, wenn nicht alles auf ein Bild passt.
 
