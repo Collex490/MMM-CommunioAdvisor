@@ -134,6 +134,100 @@
   margin-top: 10px;
 }
 
+.communio-advisor__live {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(217, 170, 63, 0.08);
+  border: 1px solid rgba(217, 170, 63, 0.24);
+  border-left: 4px solid var(--advisor-gold);
+  border-radius: 8px;
+}
+
+.communio-advisor__live-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.communio-advisor__live-state {
+  color: rgba(123, 216, 143, 0.92);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.communio-advisor__live-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.communio-advisor__live-player {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+}
+
+.communio-advisor__live-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  color: #141414;
+  background: var(--advisor-gold);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.communio-advisor__live-info {
+  min-width: 0;
+}
+
+.communio-advisor__live-info strong,
+.communio-advisor__live-info span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.communio-advisor__live-info strong {
+  color: var(--advisor-text);
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.communio-advisor__live-info span {
+  margin-top: 3px;
+  color: var(--advisor-muted);
+  font-size: 12px;
+}
+
+.communio-advisor__live-points {
+  min-width: 42px;
+  padding: 5px 7px;
+  color: #fff;
+  background: #2f9a36;
+  border: 1px solid rgba(87, 213, 91, 0.45);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
 .communio-advisor__status-item {
   min-height: 54px;
   padding: 8px 10px;

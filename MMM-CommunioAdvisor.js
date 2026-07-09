@@ -100,6 +100,7 @@ Module.register("MMM-CommunioAdvisor", {
     grid.appendChild(this.buildCard("Budget-Hinweis", recommendations.budget, "budget"));
     mainColumn.appendChild(grid);
     mainColumn.appendChild(this.buildStatusStrip(data));
+    mainColumn.appendChild(this.buildLivePlayers(data.livePlayers || data.livePoints || []));
 
     const sideColumn = document.createElement("div");
     sideColumn.className = "communio-advisor__side-column";
@@ -324,6 +325,87 @@ Module.register("MMM-CommunioAdvisor", {
     });
 
     return strip;
+  },
+
+  buildLivePlayers(players) {
+    const livePlayers = (Array.isArray(players) ? players : [])
+      .filter((player) => player && (player.livePoints !== undefined || player.points !== undefined || player.status))
+      .slice(0, 6);
+
+    if (!livePlayers.length) {
+      return document.createDocumentFragment();
+    }
+
+    const panel = document.createElement("div");
+    panel.className = "communio-advisor__live";
+
+    const header = document.createElement("div");
+    header.className = "communio-advisor__live-header";
+
+    const title = document.createElement("div");
+    title.className = "communio-advisor__card-label";
+    title.textContent = "Live-Punkte";
+
+    const state = document.createElement("div");
+    state.className = "communio-advisor__live-state";
+    state.textContent = "Spiel laeuft";
+
+    header.appendChild(title);
+    header.appendChild(state);
+    panel.appendChild(header);
+
+    const list = document.createElement("div");
+    list.className = "communio-advisor__live-list";
+
+    livePlayers.forEach((player) => {
+      const item = document.createElement("div");
+      item.className = "communio-advisor__live-player";
+
+      const photo = document.createElement(player.photoUrl || player.imageUrl ? "img" : "div");
+      photo.className = "communio-advisor__live-photo";
+      if (player.photoUrl || player.imageUrl) {
+        photo.src = player.photoUrl || player.imageUrl;
+        photo.alt = player.name || "Spieler";
+      } else {
+        photo.textContent = this.initials(player.name);
+      }
+
+      const info = document.createElement("div");
+      info.className = "communio-advisor__live-info";
+
+      const name = document.createElement("strong");
+      name.textContent = player.name || "Unbekannt";
+
+      const meta = document.createElement("span");
+      meta.textContent = [player.position, player.club, player.status].filter(Boolean).join(" · ");
+
+      info.appendChild(name);
+      if (meta.textContent) {
+        info.appendChild(meta);
+      }
+
+      const points = document.createElement("div");
+      points.className = "communio-advisor__live-points";
+      const value = player.livePoints ?? player.points ?? "-";
+      points.textContent = `${value} P`;
+
+      item.appendChild(photo);
+      item.appendChild(info);
+      item.appendChild(points);
+      list.appendChild(item);
+    });
+
+    panel.appendChild(list);
+    return panel;
+  },
+
+  initials(name) {
+    return String(name || "?")
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
   },
 
   getFocusStatus(data) {
