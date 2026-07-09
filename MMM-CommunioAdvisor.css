@@ -546,6 +546,167 @@
   font-size: 14px;
 }
 
+@media (max-width: 1200px) {
+  .communio-advisor {
+    width: 98vw;
+    padding: 10px 12px;
+  }
+
+  .communio-advisor__header {
+    padding-bottom: 8px;
+  }
+
+  .communio-advisor__eyebrow {
+    font-size: 14px;
+  }
+
+  .communio-advisor__title {
+    font-size: 28px;
+  }
+
+  .communio-advisor__motto,
+  .communio-advisor__footer {
+    font-size: 12px;
+  }
+
+  .communio-advisor__badge {
+    min-width: 120px;
+    padding: 7px 10px;
+    font-size: 15px;
+  }
+
+  .communio-advisor__ticker {
+    grid-template-columns: 132px minmax(0, 1fr);
+    min-height: 28px;
+  }
+
+  .communio-advisor__ticker-label {
+    flex-basis: 132px;
+    font-size: 12px;
+  }
+
+  .communio-advisor__ticker-track {
+    font-size: 14px;
+    line-height: 28px;
+  }
+
+  .communio-advisor__content {
+    grid-template-columns: minmax(0, 1.05fr) minmax(390px, 0.95fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .communio-advisor__grid,
+  .communio-advisor__status-strip,
+  .communio-advisor__live-list {
+    gap: 6px;
+  }
+
+  .communio-advisor__card {
+    min-height: 90px;
+    padding: 8px 10px;
+  }
+
+  .communio-advisor__card-label,
+  .communio-advisor__section-title {
+    font-size: 12px;
+  }
+
+  .communio-advisor__card-name,
+  .communio-advisor__rumor-headline {
+    margin-top: 4px;
+    font-size: 19px;
+  }
+
+  .communio-advisor__card-reason {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.18;
+  }
+
+  .communio-advisor__card-meta {
+    display: none;
+  }
+
+  .communio-advisor__status-item {
+    min-height: 48px;
+    padding: 7px 8px;
+  }
+
+  .communio-advisor__status-item span {
+    font-size: 11px;
+  }
+
+  .communio-advisor__status-item strong {
+    font-size: 17px;
+  }
+
+  .communio-advisor__status-item strong.communio-advisor__status-multi {
+    font-size: 11px;
+  }
+
+  .communio-advisor__live {
+    margin-top: 8px;
+    padding: 8px 10px;
+  }
+
+  .communio-advisor__live-player {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    min-height: 48px;
+    padding: 5px 6px;
+  }
+
+  .communio-advisor__live-photo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .communio-advisor__live-info strong {
+    font-size: 13px;
+  }
+
+  .communio-advisor__live-info span {
+    font-size: 10px;
+  }
+
+  .communio-advisor__lineup,
+  .communio-advisor__standings,
+  .communio-advisor__squad,
+  .communio-advisor__card--rumor {
+    padding: 8px 10px;
+  }
+
+  .communio-advisor__lineup-image {
+    height: min(24vh, 220px);
+  }
+
+  .communio-advisor__standing-row {
+    margin-top: 6px;
+    padding: 5px 7px;
+    font-size: 14px;
+  }
+
+  .communio-advisor__standing-score {
+    min-width: 30px;
+    height: 23px;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+
+  .communio-advisor__squad,
+  .communio-advisor__card--rumor {
+    margin-top: 8px;
+  }
+
+  .communio-advisor__squad-row {
+    grid-template-columns: 95px minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 5px;
+    font-size: 13px;
+    line-height: 1.16;
+  }
+}
+
 @media (max-width: 700px) {
   .communio-advisor {
     width: 96vw;
