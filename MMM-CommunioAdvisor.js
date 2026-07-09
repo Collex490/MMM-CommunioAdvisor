@@ -502,7 +502,7 @@ Module.register("MMM-CommunioAdvisor", {
 
     [
       ["Halten", insights.keep],
-      ["Verkaufen/Tauschen", insights.sell],
+      ["Verkaufen", insights.sell],
       ["Beobachten", insights.watch]
     ].forEach(([title, items]) => {
       if (!Array.isArray(items) || !items.length) {
