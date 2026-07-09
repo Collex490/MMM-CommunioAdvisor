@@ -4,11 +4,12 @@ const path = require("path");
 const dotenv = require("dotenv");
 
 const envPath = path.join(__dirname, "..", ".env");
+let fileEnv = {};
 dotenv.config({ path: envPath });
 
 try {
-  const parsedEnv = dotenv.parse(fsSync.readFileSync(envPath));
-  Object.entries(parsedEnv).forEach(([key, value]) => {
+  fileEnv = dotenv.parse(fsSync.readFileSync(envPath));
+  Object.entries(fileEnv).forEach(([key, value]) => {
     if (!process.env[key]) {
       process.env[key] = value;
     }
@@ -17,7 +18,11 @@ try {
   // The login command below will show a friendly missing-env message.
 }
 
-const dataDir = process.env.COMMUNIO_ADVISOR_TEST_DATA_DIR
+function env(name, fallback = "") {
+  return process.env[name] || fileEnv[name] || fallback;
+}
+
+const dataDir = env("COMMUNIO_ADVISOR_TEST_DATA_DIR")
   || path.join(__dirname, "..", "data");
 
 const defaultProbeUrls = [
@@ -88,7 +93,7 @@ async function writeJson(fileName, data) {
 }
 
 async function probe() {
-  const urls = splitEnvList(process.env.COMMUNIO_PROBE_URLS, defaultProbeUrls);
+  const urls = splitEnvList(env("COMMUNIO_PROBE_URLS"), defaultProbeUrls);
   const results = [];
 
   for (const url of urls) {
@@ -116,11 +121,11 @@ async function probe() {
 }
 
 async function loginAndFetch() {
-  const username = process.env.COMUNIO_USERNAME;
-  const password = process.env.COMUNIO_PASSWORD;
-  const loginUrl = process.env.COMUNIO_LOGIN_URL || "https://classic.comunio.de/login.phtml";
-  const usernameField = process.env.COMUNIO_USERNAME_FIELD || "login";
-  const passwordField = process.env.COMUNIO_PASSWORD_FIELD || "pass";
+  const username = env("COMMUNIO_USERNAME");
+  const password = env("COMMUNIO_PASSWORD");
+  const loginUrl = env("COMMUNIO_LOGIN_URL", "https://classic.comunio.de/login.phtml");
+  const usernameField = env("COMMUNIO_USERNAME_FIELD", "login");
+  const passwordField = env("COMMUNIO_PASSWORD_FIELD", "pass");
 
   if (!username || !password) {
     throw new Error("COMMUNIO_USERNAME und COMMUNIO_PASSWORD fehlen in .env.");
@@ -130,8 +135,8 @@ async function loginAndFetch() {
   form.set(usernameField, username);
   form.set(passwordField, password);
 
-  if (process.env.COMUNIO_EXTRA_LOGIN_FIELDS) {
-    for (const pair of process.env.COMUNIO_EXTRA_LOGIN_FIELDS.split("&")) {
+  if (env("COMMUNIO_EXTRA_LOGIN_FIELDS")) {
+    for (const pair of env("COMMUNIO_EXTRA_LOGIN_FIELDS").split("&")) {
       const [key, value = ""] = pair.split("=");
       if (key) form.set(key, value);
     }
@@ -146,7 +151,7 @@ async function loginAndFetch() {
   });
 
   const cookies = loginResult.setCookie || [];
-  const fetchUrls = splitEnvList(process.env.COMUNIO_FETCH_URLS);
+  const fetchUrls = splitEnvList(env("COMMUNIO_FETCH_URLS"));
   const pages = [];
 
   for (const url of fetchUrls) {
@@ -187,9 +192,10 @@ function checkEnv() {
   console.log(`Adapter-Datei: ${__filename}`);
   console.log(`ENV-Pfad: ${envPath}`);
   console.log(`ENV-Datei vorhanden: ${fsSync.existsSync(envPath) ? "ja" : "nein"}`);
-  console.log(`Username im Adapter: ${process.env.COMUNIO_USERNAME ? "gefunden" : "fehlt"}`);
-  console.log(`Passwort im Adapter: ${process.env.COMUNIO_PASSWORD ? "gefunden" : "fehlt"}`);
-  console.log(`Login-URL: ${process.env.COMUNIO_LOGIN_URL || "fehlt"}`);
+  console.log(`ENV-Keys gelesen: ${Object.keys(fileEnv).filter((key) => key.startsWith("COMMUNIO")).length}`);
+  console.log(`Username im Adapter: ${env("COMMUNIO_USERNAME") ? "gefunden" : "fehlt"}`);
+  console.log(`Passwort im Adapter: ${env("COMMUNIO_PASSWORD") ? "gefunden" : "fehlt"}`);
+  console.log(`Login-URL: ${env("COMMUNIO_LOGIN_URL", "fehlt")}`);
 }
 
 async function main() {
