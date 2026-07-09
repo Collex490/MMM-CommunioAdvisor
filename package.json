@@ -8,6 +8,7 @@
     "telegram": "node backend/telegram-bot.js",
     "communio:probe": "node -r dotenv/config backend/comunio-api-test.js probe",
     "communio:login": "node -r dotenv/config backend/comunio-api-test.js login",
+    "communio:sync": "node backend/comunio-sync.js",
     "communio:analyze": "node -r dotenv/config backend/comunio-analyze-data.js"
   },
   "dependencies": {
