@@ -78,7 +78,7 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     const data = this.analysis || {};
-    const recommendations = data.recommendations || {};
+    const recommendations = this.getDisplayRecommendations(data);
 
     wrapper.appendChild(this.buildHeader(data));
 
@@ -186,6 +186,73 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     return data.clubLogo?.url || data.clubLogo || "";
+  },
+
+  getDisplayRecommendations(data) {
+    const recommendations = { ...(data.recommendations || {}) };
+
+    if (!this.hasRecommendation(recommendations.buy)) {
+      recommendations.buy = {
+        title: "Keine Kaufempfehlung",
+        reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten.",
+        confidence: "hoch"
+      };
+    }
+
+    if (!this.hasRecommendation(recommendations.sell)) {
+      recommendations.sell = this.recommendationFromInsight(
+        data.squadInsights?.sell?.[0],
+        "Verkauf offen",
+        "Noch kein klarer Verkaufskandidat. Erst bei echtem Upgrade oder starkem Angebot handeln."
+      );
+    }
+
+    if (!this.hasRecommendation(recommendations.risk)) {
+      recommendations.risk = this.recommendationFromInsight(
+        data.squadInsights?.watch?.[0],
+        "Risiko offen",
+        "Aktuell kein klares Startelf-Risiko erkannt. Rollen vor dem Spieltag weiter beobachten."
+      );
+    }
+
+    if (!this.hasRecommendation(recommendations.budget)) {
+      const budget = data.budgetStatus?.amount || data.budgetStatus?.label;
+      recommendations.budget = {
+        title: budget ? "Budget vorsichtig einsetzen" : "Budget offen",
+        reason: budget
+          ? `${this.formatCurrencyText(budget)} als Reserve nutzen; nur bei klarer Marktchance aggressiv bieten.`
+          : "Noch kein belastbarer Budgetwert erkannt.",
+        confidence: budget ? "mittel" : "niedrig"
+      };
+    }
+
+    return recommendations;
+  },
+
+  hasRecommendation(item) {
+    if (!item || typeof item !== "object") return false;
+    const text = [item.player, item.title, item.reason].join(" ").toLowerCase();
+    return Boolean(item.player || item.title || item.reason)
+      && !text.includes("noch keine daten")
+      && !text.includes("sende einen screenshot")
+      && !text.includes("kauf offen")
+      && !text.includes("verkauf offen")
+      && !text.includes("risiko offen");
+  },
+
+  recommendationFromInsight(text, title, fallbackReason) {
+    const value = String(text || "").trim();
+    if (!value) {
+      return { title, reason: fallbackReason, confidence: "mittel" };
+    }
+
+    const [player, ...reasonParts] = value.split(":");
+    return {
+      player: reasonParts.length ? player.trim() : title,
+      title,
+      reason: reasonParts.length ? reasonParts.join(":").trim() : value,
+      confidence: "mittel"
+    };
   },
 
   formatCurrencyText(value) {

@@ -45,6 +45,60 @@
       : { title: fallback, reason: "Noch keine passende Analyse vorhanden.", confidence: "" };
   }
 
+  function hasRecommendation(item) {
+    if (!item || typeof item !== "object") return false;
+    const text = [item.player, item.title, item.reason].join(" ").toLowerCase();
+    return Boolean(item.player || item.title || item.reason)
+      && !text.includes("noch keine daten")
+      && !text.includes("sende einen screenshot")
+      && !text.includes("kauf offen")
+      && !text.includes("verkauf offen")
+      && !text.includes("risiko offen");
+  }
+
+  function recommendationFromInsight(text, title, fallbackReason) {
+    const value = String(text || "").trim();
+    if (!value) return { title, reason: fallbackReason, confidence: "mittel" };
+
+    const [player, ...reasonParts] = value.split(":");
+    return {
+      player: reasonParts.length ? player.trim() : title,
+      title,
+      reason: reasonParts.length ? reasonParts.join(":").trim() : value,
+      confidence: "mittel"
+    };
+  }
+
+  function displayRecommendations(data) {
+    const recommendations = { ...(data.recommendations || {}) };
+
+    if (!hasRecommendation(recommendations.buy)) {
+      recommendations.buy = {
+        title: "Keine Kaufempfehlung",
+        reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten.",
+        confidence: "hoch"
+      };
+    }
+
+    if (!hasRecommendation(recommendations.sell)) {
+      recommendations.sell = recommendationFromInsight(
+        data.squadInsights?.sell?.[0],
+        "Verkauf offen",
+        "Noch kein klarer Verkaufskandidat. Erst bei echtem Upgrade oder starkem Angebot handeln."
+      );
+    }
+
+    if (!hasRecommendation(recommendations.risk)) {
+      recommendations.risk = recommendationFromInsight(
+        data.squadInsights?.watch?.[0],
+        "Risiko offen",
+        "Aktuell kein klares Startelf-Risiko erkannt. Rollen vor dem Spieltag weiter beobachten."
+      );
+    }
+
+    return recommendations;
+  }
+
   function getOwnTeam(data) {
     const clubName = CONFIG.clubName.trim().toLowerCase();
     return (data.standings || []).find((team) => {
@@ -130,8 +184,12 @@
     const text = transfers
       .slice(0, 12)
       .map((item) => {
-        const price = item.price ? ` fuer ${item.price}` : "";
-        return `${item.action || "Update"}: ${item.player || "Unbekannt"} zu ${item.club || "unbekannt"}${price}`;
+        if (item.text) return item.text.replace(/\bfuer\b/g, "für");
+        const price = item.price ? ` für ${item.price}` : "";
+        const direction = item.from || item.to
+          ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
+          : `zu ${item.club || "unbekannt"}`;
+        return `${item.action || "Update"}: ${item.player || "Unbekannt"} ${direction}${price}`;
       })
       .join("  +++  ");
     track.textContent = `${text}  +++  ${text}`;
@@ -147,7 +205,6 @@
       item?.price
     ].join(" ").toLowerCase();
     return Boolean(item?.player || item?.action)
-      && !text.includes("computer")
       && !text.includes("listed")
       && !text.includes("gelistet");
   }
@@ -205,7 +262,7 @@
     node.appendChild(el("div", "ipad-advisor__label", "Kader-Check"));
     [
       ["Halten", insights.keep],
-      ["Verkaufen/Tauschen", insights.sell],
+      ["Verkaufen", insights.sell],
       ["Beobachten", insights.watch]
     ].forEach(([label, items]) => {
       if (!Array.isArray(items) || !items.length) return;
@@ -230,7 +287,7 @@
 
   function render(data) {
     latestData = data;
-    const recommendations = data.recommendations || {};
+    const recommendations = displayRecommendations(data);
     app.innerHTML = "";
 
     const shell = el("div", "ipad-advisor__shell");

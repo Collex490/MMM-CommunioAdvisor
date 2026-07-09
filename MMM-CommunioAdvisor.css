@@ -188,11 +188,11 @@
 
 .communio-advisor__squad-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
   margin-top: 8px;
   color: var(--advisor-muted);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.22;
 }
 
@@ -204,6 +204,7 @@
 .communio-advisor__squad-row strong {
   color: var(--advisor-text);
   font-weight: 400;
+  overflow-wrap: anywhere;
 }
 
 
