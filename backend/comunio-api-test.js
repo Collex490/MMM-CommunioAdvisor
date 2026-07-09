@@ -77,6 +77,33 @@ function tokenFromPayload(payload) {
     || "";
 }
 
+function findFirstKeyDeep(value, keyNames) {
+  const keys = new Set(keyNames.map((key) => key.toLowerCase()));
+  const stack = [value];
+  const seen = new Set();
+
+  while (stack.length) {
+    const item = stack.pop();
+    if (!item || typeof item !== "object" || seen.has(item)) {
+      continue;
+    }
+
+    seen.add(item);
+
+    for (const [key, nestedValue] of Object.entries(item)) {
+      if (keys.has(key.toLowerCase()) && (typeof nestedValue === "string" || typeof nestedValue === "number")) {
+        return nestedValue;
+      }
+
+      if (nestedValue && typeof nestedValue === "object") {
+        stack.push(nestedValue);
+      }
+    }
+  }
+
+  return "";
+}
+
 function loginPayloadVariants(username, password) {
   const tzoffset = Number(env("COMMUNIO_TZOFFSET", "2"));
   return [
@@ -459,13 +486,20 @@ async function apiLoginAndFetch() {
       cookie: cookieHeader(cookies)
     }
   });
+  const communityId = env("COMMUNIO_COMMUNITY_ID")
+    || findFirstKeyDeep(afterState.json, ["communityId", "community_id", "community"]);
+  const userId = env("COMMUNIO_USER_ID")
+    || findFirstKeyDeep(afterState.json, ["userId", "user_id", "authenticatedUserId", "ownerId"]);
 
   const defaultApiUrls = [
     `${apiBase}/login/state`,
-    `${apiBase}/game/info/user/`,
+    `${apiBase}/users/${userId}/squad`,
+    `${apiBase}/users/${userId}/squad?eid=${communityId}`,
+    `${apiBase}/communities/${communityId}/standings`,
+    `${apiBase}/communities/${communityId}/users/${userId}/offers`,
     `${apiBase}/market`,
     `${apiBase}/game/market`,
-    `${apiBase}/standings`,
+    `${apiBase}/game/info/user/`,
     `${apiBase}/lineup`
   ];
   const apiUrls = splitEnvList(env("COMMUNIO_API_FETCH_URLS"), defaultApiUrls);
@@ -512,6 +546,8 @@ async function apiLoginAndFetch() {
       url: stateUrl,
       status: afterState.status,
       contentType: afterState.contentType,
+      communityId: communityId || "",
+      userId: userId || "",
       snippet: afterState.snippet
     },
     pages: pages.map((page) => ({
@@ -528,7 +564,7 @@ async function apiLoginAndFetch() {
   console.log(`API-Login-Test gespeichert: ${targetPath}`);
   console.log(`State vorher: ${beforeState.status}`);
   console.log(`Login Status: ${loginResult.status}, Cookies: ${cookies.length}, Token: ${token ? "ja" : "nein"}, Payload: ${loginPayloadShape}`);
-  console.log(`State danach: ${afterState.status}`);
+  console.log(`State danach: ${afterState.status}, Community: ${communityId || "unbekannt"}, User: ${userId || "unbekannt"}`);
   pages.forEach((page) => console.log(`${page.status || "ERR"} ${page.url} ${page.contentType || page.error || ""}`));
 }
 
