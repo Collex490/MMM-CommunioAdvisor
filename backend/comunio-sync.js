@@ -112,7 +112,16 @@ function objectName(item) {
     item.playerName
   );
   if (direct) return String(direct);
-  return firstValue(item.player?.name, item.player?.displayName, item.user?.name, item.owner?.name, "");
+  return firstValue(
+    item.player?.name,
+    item.player?.displayName,
+    item.user?.name,
+    item.owner?.name,
+    item.manager?.name,
+    item.communityUser?.name,
+    item.team?.name,
+    ""
+  );
 }
 
 function numberish(value) {
@@ -125,8 +134,10 @@ function numberish(value) {
 function objectMoney(item) {
   return firstValue(
     item.marketValue,
+    item.marketvalue,
     item.market_value,
     item.teamValue,
+    item.teamvalue,
     item.team_value,
     item.value,
     item.price,
@@ -135,6 +146,50 @@ function objectMoney(item) {
     item.balance,
     ""
   );
+}
+
+const knownClubs = [
+  "pasta la vista fc",
+  "sporting bolzackerer",
+  "squadra absenta"
+];
+
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function knownClubName(value) {
+  const normalized = normalizeText(value);
+  return knownClubs.find((club) => normalized === club || normalized.includes(club)) || "";
+}
+
+function deepKnownClubName(value) {
+  let found = knownClubName(objectName(value));
+  if (found) return found;
+
+  walk(value, (item) => {
+    if (found || !item || typeof item !== "object") return;
+    Object.values(item).forEach((nested) => {
+      if (!found && typeof nested === "string") found = knownClubName(nested);
+    });
+  });
+
+  return found;
+}
+
+function deepFirstValueByKeys(value, keys) {
+  let found;
+  walk(value, (item) => {
+    if (found !== undefined || !item || typeof item !== "object") return;
+    const lower = lowerKeys(item);
+    for (const key of keys) {
+      if (lower[key] !== undefined && lower[key] !== null && lower[key] !== "") {
+        found = lower[key];
+        return;
+      }
+    }
+  });
+  return found;
 }
 
 async function fetchJson(url, options = {}) {
@@ -240,6 +295,12 @@ function pageByUrl(raw, part) {
   return raw.pages.find((page) => page.url.includes(part) && page.status === 200 && page.json)?.json;
 }
 
+function pagesByUrl(raw, part) {
+  return raw.pages
+    .filter((page) => page.url.includes(part) && page.status === 200 && page.json)
+    .map((page) => page.json);
+}
+
 function bestArrayByScore(value, scorer) {
   return collectArrays(value)
     .map((items) => ({ items, score: items.reduce((sum, item) => sum + scorer(item), 0) }))
@@ -250,28 +311,67 @@ function mapStandings(json) {
   const items = bestArrayByScore(json, (item) => {
     if (!item || typeof item !== "object") return 0;
     const keys = lowerKeys(item);
+    const clubName = deepKnownClubName(item);
     return [
-      objectName(item) ? 2 : 0,
+      objectName(item) || clubName ? 2 : 0,
+      clubName ? 4 : 0,
       keys.rank !== undefined || keys.position !== undefined ? 2 : 0,
-      keys.points !== undefined || keys.totalpoints !== undefined ? 2 : 0,
-      objectMoney(item) ? 1 : 0
+      keys.points !== undefined || keys.totalpoints !== undefined || keys.score !== undefined ? 2 : 0,
+      objectMoney(item) || deepFirstValueByKeys(item, ["marketvalue", "teamvalue"]) ? 1 : 0
     ].reduce((sum, value) => sum + value, 0);
   });
 
   return items
-    .filter((item) => item && typeof item === "object" && objectName(item))
+    .filter((item) => item && typeof item === "object" && (objectName(item) || deepKnownClubName(item)))
     .map((item, index) => {
-      const name = objectName(item);
+      const known = deepKnownClubName(item);
+      const name = objectName(item) || (known ? known.replace(/\b\w/g, (char) => char.toUpperCase()) : "");
       return {
-        rank: numberish(firstValue(item.rank, item.position, item.place)) || index + 1,
+        rank: numberish(firstValue(
+          item.rank,
+          item.position,
+          item.place,
+          deepFirstValueByKeys(item, ["rank", "position", "place"])
+        )) || index + 1,
         name,
-        matchdayPoints: numberish(firstValue(item.matchdayPoints, item.currentPoints, item.dayPoints, item.points)),
-        totalPoints: numberish(firstValue(item.totalPoints, item.overallPoints, item.pointsTotal, item.total, item.points)),
-        marketValue: formatMoney(objectMoney(item)),
-        isUserClub: name.trim().toLowerCase() === "pasta la vista fc"
+        matchdayPoints: numberish(firstValue(
+          item.matchdayPoints,
+          item.currentPoints,
+          item.dayPoints,
+          item.lastPoints,
+          deepFirstValueByKeys(item, ["matchdaypoints", "currentpoints", "daypoints", "lastpoints", "points"])
+        )),
+        totalPoints: numberish(firstValue(
+          item.totalPoints,
+          item.overallPoints,
+          item.pointsTotal,
+          item.total,
+          deepFirstValueByKeys(item, ["totalpoints", "overallpoints", "pointstotal", "total", "score", "points"])
+        )),
+        marketValue: formatMoney(firstValue(objectMoney(item), deepFirstValueByKeys(item, ["marketvalue", "teamvalue"]))),
+        isUserClub: normalizeText(name) === "pasta la vista fc"
       };
     })
+    .filter((item, index, list) => list.findIndex((other) => normalizeText(other.name) === normalizeText(item.name)) === index)
     .slice(0, 12);
+}
+
+function mapStandingsFromRaw(raw) {
+  const candidates = [
+    ...pagesByUrl(raw, "/standings"),
+    ...pagesByUrl(raw, "total.json"),
+    ...raw.pages
+      .filter((page) => page.status === 200 && page.json && /Pasta la Vista|Sporting Bolzackerer|Squadra Absenta/i.test(JSON.stringify(page.json)))
+      .map((page) => page.json)
+  ];
+
+  return candidates
+    .map((json) => mapStandings(json))
+    .filter((items) => items.length)
+    .sort((a, b) => {
+      const clubCount = (items) => new Set(items.map((item) => normalizeText(item.name)).filter((name) => knownClubs.includes(name))).size;
+      return clubCount(b) - clubCount(a) || b.length - a.length;
+    })[0] || [];
 }
 
 function mapPlayers(json) {
@@ -347,7 +447,7 @@ function findBudget(json) {
   walk(json, (item) => {
     if (found || !item || typeof item !== "object") return;
     const keys = lowerKeys(item);
-    const value = firstValue(keys.balance, keys.budget, keys.money, keys.accountbalance, keys.account);
+    const value = firstValue(keys.credit, keys.balance, keys.budget, keys.money, keys.accountbalance, keys.account);
     if (value !== undefined && value !== null && value !== "") found = formatMoney(value);
   });
   return found;
@@ -373,15 +473,14 @@ function buildAnalysis(raw) {
   const squad = pageByUrl(raw, "/squad");
   const offers = pageByUrl(raw, "/offers?current");
   const matchdays = pageByUrl(raw, "/matchdays");
-  const standingsJson = pageByUrl(raw, "/standings");
   const news = raw.pages
     .filter((page) => page.status === 200 && page.url.includes("/news"))
     .map((page) => page.json);
   const squadPlayers = mapPlayers(squad);
   const marketCandidates = mapOffers(offers);
-  const standings = mapStandings(standingsJson);
+  const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
-  const budget = findBudget(lineup) || findBudget(squad);
+  const budget = findBudget(offers) || findBudget(lineup) || findBudget(squad);
 
   return {
     league: "WM Comunio",
