@@ -68,7 +68,7 @@ function buildHelpText() {
     "/tabelle - Liga-Tabelle mit Punkten speichern",
     "/aufstellung - offizielles Aufstellungsbild speichern",
     "/budget - Kontostand/Budget auswerten",
-    "/kader - Kader fuer Halten/Verkaufen/Tauschen auswerten",
+    "/kader - Kader fuer Halten/Verkaufen/Beobachten auswerten",
     "/kapitaen Name - Kapitaen oben rechts setzen",
     "/logo - naechstes Bild als Vereinslogo speichern",
     "/status - letzte Analyse anzeigen",
