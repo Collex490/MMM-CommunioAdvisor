@@ -120,6 +120,9 @@ function objectName(item) {
     item.manager?.name,
     item.communityUser?.name,
     item.team?.name,
+    item._embedded?.user?.name,
+    item._embedded?.team?.name,
+    item._embedded?.owner?.name,
     ""
   );
 }
@@ -362,7 +365,7 @@ function mapStandings(json) {
       clubName ? 4 : 0,
       keys.rank !== undefined || keys.position !== undefined ? 2 : 0,
       hasStandingsPoints ? 4 : 0,
-      directValueByKeys(item, ["marketvalue", "teamvalue"]) ? 1 : 0
+      firstValue(directValueByKeys(item, ["marketvalue", "teamvalue"]), item._embedded?.teamInfo?.teamValue) ? 1 : 0
     ].reduce((sum, value) => sum + value, 0);
   });
 
@@ -401,7 +404,10 @@ function mapStandings(json) {
         name,
         matchdayPoints: matchdayPoints !== undefined ? matchdayPoints : totalPoints,
         totalPoints,
-        marketValue: formatMoney(directValueByKeys(item, ["marketvalue", "teamvalue"])),
+        marketValue: formatMoney(firstValue(
+          directValueByKeys(item, ["marketvalue", "teamvalue"]),
+          item._embedded?.teamInfo?.teamValue
+        )),
         isUserClub: normalizeText(name) === "pasta la vista fc"
       };
     })
