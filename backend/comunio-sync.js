@@ -276,9 +276,12 @@ function configuredUrls(apiBase) {
     env("COMMUNIO_API_FETCH_URLS"),
     env("COMMUNIO_FETCH_URLS"),
     env("COMMUNIO_STANDINGS_TOTAL_URL"),
-    env("COMMUNIO_STANDINGS_URL")
+    env("COMMUNIO_STANDINGS_URL"),
+    env("COMMUNIO_MEMBERS_URL"),
+    env("COMMUNIO_STATE_URL")
   ].filter(Boolean).join(",");
   const fallback = [
+    `${apiBase}/login/state`,
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/lineup` : "",
     userId ? `${apiBase}/users/${userId}/squad` : "",
     userId && communityId ? `${apiBase}/users/${userId}/squad?eid=${communityId}` : "",
@@ -286,7 +289,9 @@ function configuredUrls(apiBase) {
     `${apiBase}/matchdays`,
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/news?group=true&originaltypes=true&start=0&limit=50&type=HIDDEN_NEWS` : "",
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/news?group=true&originaltypes=true&start=0&limit=20` : "",
-    communityId ? `${apiBase}/communities/${communityId}/standings` : ""
+    communityId ? `${apiBase}/communities/${communityId}/members?online` : "",
+    communityId ? `${apiBase}/communities/${communityId}/standings` : "",
+    communityId ? `${apiBase}/communities/${communityId}/standings?period=total&wpe=true` : ""
   ].filter(Boolean);
 
   return splitEnvList(configuredFetchUrls, fallback);
@@ -427,7 +432,60 @@ function mapStandingsFromRaw(raw) {
     })[0] || [];
 
   const validRows = standings.filter((item) => item.totalPoints !== undefined || item.matchdayPoints !== undefined);
-  return validRows.length >= 2 ? standings : [];
+  if (validRows.length < 2) return [];
+
+  const marketValues = mapTeamMarketValues(raw);
+  return standings.map((team) => ({
+    ...team,
+    marketValue: team.marketValue || marketValues.get(normalizeText(team.name)) || ""
+  }));
+}
+
+function squadMarketValue(squadJson) {
+  const players = mapPlayers(squadJson);
+  const total = players.reduce((sum, player) => {
+    const value = numberish(player.marketValue || player.raw?.quotedprice || player.raw?.quotedPrice || player.raw?.recommendedprice || player.raw?.recommendedPrice);
+    return sum + (value || 0);
+  }, 0);
+  return total > 0 ? formatMoney(total) : "";
+}
+
+function mapTeamMarketValues(raw) {
+  const values = new Map();
+
+  raw.pages
+    .filter((page) => page.status === 200 && page.json)
+    .forEach((page) => {
+      walk(page.json, (item) => {
+        if (!item || typeof item !== "object") return;
+        const name = titleCaseClubName(deepKnownClubName(item) || objectName(item));
+        const normalized = normalizeText(name);
+        if (!knownClubs.includes(normalized)) return;
+
+        const value = directValueByKeys(item, [
+          "marketvalue",
+          "market_value",
+          "teamvalue",
+          "team_value",
+          "squadvalue",
+          "squad_value",
+          "rostervalue",
+          "roster_value"
+        ]);
+
+        if (value !== undefined && value !== null && value !== "") {
+          values.set(normalized, formatMoney(value));
+        }
+      });
+    });
+
+  const ownSquad = pageByUrl(raw, "/squad");
+  const ownValue = squadMarketValue(ownSquad);
+  if (ownValue && !values.has("pasta la vista fc")) {
+    values.set("pasta la vista fc", ownValue);
+  }
+
+  return values;
 }
 
 function mapPlayers(json) {
