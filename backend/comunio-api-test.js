@@ -120,12 +120,14 @@ function countMatches(text, pattern) {
 async function fetchText(url, options = {}) {
   const snippetLimit = options.snippetLimit || 1200;
   const includeText = Boolean(options.includeText);
+  const redirect = options.redirect || "follow";
   const fetchOptions = { ...options };
   delete fetchOptions.snippetLimit;
   delete fetchOptions.includeText;
+  delete fetchOptions.redirect;
 
   const response = await fetch(url, {
-    redirect: "manual",
+    redirect,
     ...fetchOptions,
     headers: {
       "user-agent": "Mozilla/5.0 (X11; Linux armv7l) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 MMM-CommunioAdvisor/0.1",
@@ -263,6 +265,7 @@ async function loginAndFetch() {
 
   const loginResult = await fetchText(loginUrl, {
     method: "POST",
+    redirect: "manual",
     body: form,
     headers: {
       "content-type": "application/x-www-form-urlencoded"
