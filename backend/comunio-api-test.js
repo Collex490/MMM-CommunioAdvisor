@@ -183,8 +183,22 @@ async function loginAndFetch() {
   pages.forEach((page) => console.log(`${page.status || "ERR"} ${page.url} ${page.contentType || page.error || ""}`));
 }
 
+function checkEnv() {
+  console.log(`Adapter-Datei: ${__filename}`);
+  console.log(`ENV-Pfad: ${envPath}`);
+  console.log(`ENV-Datei vorhanden: ${fsSync.existsSync(envPath) ? "ja" : "nein"}`);
+  console.log(`Username im Adapter: ${process.env.COMUNIO_USERNAME ? "gefunden" : "fehlt"}`);
+  console.log(`Passwort im Adapter: ${process.env.COMUNIO_PASSWORD ? "gefunden" : "fehlt"}`);
+  console.log(`Login-URL: ${process.env.COMUNIO_LOGIN_URL || "fehlt"}`);
+}
+
 async function main() {
   const command = process.argv[2] || "probe";
+
+  if (command === "env-check") {
+    checkEnv();
+    return;
+  }
 
   if (command === "probe") {
     await probe();
