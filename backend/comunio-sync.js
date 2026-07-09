@@ -699,6 +699,9 @@ function playerPhotoUrl(player) {
   return firstValue(
     player.raw?._links?.photo?.href,
     player.raw?.photo?.href,
+    player.raw?.photoUrl,
+    player.raw?.imageUrl,
+    player.raw?.picture,
     player.raw?.player?._links?.photo?.href,
     player.raw?.tradable?._links?.photo?.href,
     ""
@@ -738,6 +741,59 @@ function lineupPlayersFromRaw(raw) {
       return true;
     })
     .slice(0, 11);
+}
+
+function mapLivePlayers(raw) {
+  const squadPlayers = mapPlayers(pageByUrl(raw, "/squad"));
+  const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
+  const livePlayers = new Map();
+
+  raw.pages
+    .filter((page) => page.status === 200 && page.json)
+    .forEach((page) => {
+      walk(page.json, (item) => {
+        if (!item || typeof item !== "object") return;
+
+        const name = objectName(item.player || item.tradable || item);
+        if (!name || !ownPlayerNames.has(normalizeText(name))) return;
+
+        const livePoints = directNumberByKeys(item, [
+          "livepoints",
+          "live_points",
+          "currentpoints",
+          "current_points",
+          "matchdaypoints",
+          "matchday_points",
+          "lastpoints",
+          "last_points"
+        ]);
+
+        const hasLiveState = Boolean(directValueByKeys(item, [
+          "livestatus",
+          "matchstatus",
+          "game_status",
+          "status"
+        ]));
+
+        if (livePoints === undefined && !hasLiveState) return;
+
+        livePlayers.set(normalizeText(name), {
+          name,
+          position: firstValue(item.position, item.type, item.role, item.player?.position, item.tradable?.position, ""),
+          club: firstValue(item.clubName, item.teamName, item.player?.clubName, item.tradable?.clubName, ""),
+          livePoints,
+          status: String(firstValue(
+            directValueByKeys(item, ["livestatus", "matchstatus", "game_status", "status"]),
+            "live"
+          )),
+          photoUrl: playerPhotoUrl({ raw: item.player || item.tradable || item })
+        });
+      });
+    });
+
+  return Array.from(livePlayers.values())
+    .sort((a, b) => (b.livePoints ?? -999) - (a.livePoints ?? -999))
+    .slice(0, 8);
 }
 
 function ownTacticFromRaw(raw) {
@@ -1039,6 +1095,7 @@ function buildAnalysis(raw, generatedLineupImage) {
     marketCandidates,
     standings,
     transferTicker: news.flatMap(mapTransferTicker).slice(0, 12),
+    livePlayers: mapLivePlayers(raw),
     budgetStatus: budget ? { amount: budget, note: "Aus Comunio-API erkannt" } : {},
     squadPlayers: squadPlayers.map((player) => ({
       name: player.name,
