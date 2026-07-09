@@ -55,6 +55,28 @@ function cookieHeader(cookies) {
     .join("; ");
 }
 
+function parseJsonSafe(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function tokenFromPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  return payload.token
+    || payload.accessToken
+    || payload.access_token
+    || payload.jwt
+    || payload.idToken
+    || payload.sessionToken
+    || "";
+}
+
 function sanitizeSnippet(text, limit = 1200) {
   return String(text || "")
     .replace(/\s+/g, " ")
@@ -113,6 +135,25 @@ function extractEndpoints(text) {
     .slice(0, 300);
 }
 
+function extractContexts(text, needles) {
+  const normalized = normalizeText(text);
+  const contexts = [];
+
+  needles.forEach((needle) => {
+    let index = normalized.toLowerCase().indexOf(needle.toLowerCase());
+
+    while (index !== -1 && contexts.length < 80) {
+      contexts.push({
+        needle,
+        text: sanitizeSnippet(normalized.slice(Math.max(0, index - 350), index + 650), 1000)
+      });
+      index = normalized.toLowerCase().indexOf(needle.toLowerCase(), index + needle.length);
+    }
+  });
+
+  return contexts;
+}
+
 function countMatches(text, pattern) {
   return (String(text || "").match(pattern) || []).length;
 }
@@ -151,6 +192,19 @@ async function fetchText(url, options = {}) {
     setCookie,
     snippet: sanitizeSnippet(text, snippetLimit),
     text: includeText ? text : undefined
+  };
+}
+
+async function fetchJsonAware(url, options = {}) {
+  const result = await fetchText(url, {
+    includeText: true,
+    snippetLimit: 3000,
+    ...options
+  });
+
+  return {
+    ...result,
+    json: parseJsonSafe(result.text)
   };
 }
 
@@ -196,18 +250,26 @@ async function discover() {
   const scripts = extractScripts(pageText, startUrl);
   const endpoints = extractEndpoints(pageText);
   const scriptResults = [];
+  const contexts = extractContexts(pageText, ["/login", "login/state", "password", "username", "email"]);
 
   for (const scriptUrl of scripts.slice(0, 40)) {
     try {
       const script = await fetchText(scriptUrl, { includeText: true, snippetLimit: 2000 });
-      const foundEndpoints = extractEndpoints(script.text || script.snippet);
+      const scriptText = script.text || script.snippet;
+      const foundEndpoints = extractEndpoints(scriptText);
+      const foundContexts = extractContexts(scriptText, ["/login", "login/state", "password", "username", "email"]);
       scriptResults.push({
         url: scriptUrl,
         status: script.status,
         contentType: script.contentType,
-        endpoints: foundEndpoints
+        endpoints: foundEndpoints,
+        contexts: foundContexts
       });
       endpoints.push(...foundEndpoints);
+      contexts.push(...foundContexts.map((context) => ({
+        ...context,
+        source: scriptUrl
+      })));
     } catch (error) {
       scriptResults.push({
         url: scriptUrl,
@@ -231,6 +293,7 @@ async function discover() {
     },
     scripts,
     endpoints: unique(endpoints),
+    contexts: contexts.slice(0, 80),
     scriptResults
   };
 
@@ -310,6 +373,123 @@ async function loginAndFetch() {
   pages.forEach((page) => console.log(`${page.status || "ERR"} ${page.url} ${page.contentType || page.error || ""}`));
 }
 
+async function apiLoginAndFetch() {
+  const username = env("COMMUNIO_USERNAME");
+  const password = env("COMMUNIO_PASSWORD");
+  const apiBase = env("COMMUNIO_API_BASE", "https://comunio.de/api").replace(/\/+$/, "");
+  const loginUrl = env("COMMUNIO_API_LOGIN_URL", `${apiBase}/login`);
+  const stateUrl = env("COMMUNIO_API_STATE_URL", `${apiBase}/login/state`);
+
+  if (!username || !password) {
+    throw new Error("COMMUNIO_USERNAME und COMMUNIO_PASSWORD fehlen in .env.");
+  }
+
+  const commonHeaders = {
+    origin: "https://www.comunio.de",
+    referer: "https://www.comunio.de/wm",
+    accept: "application/json, text/plain, */*"
+  };
+
+  const beforeState = await fetchJsonAware(stateUrl, {
+    headers: commonHeaders
+  });
+
+  const loginPayload = {
+    username,
+    password
+  };
+
+  const loginResult = await fetchJsonAware(loginUrl, {
+    method: "POST",
+    redirect: "manual",
+    body: JSON.stringify(loginPayload),
+    headers: {
+      ...commonHeaders,
+      "content-type": "application/json"
+    }
+  });
+
+  const cookies = loginResult.setCookie || [];
+  const token = tokenFromPayload(loginResult.json);
+  const authHeaders = token ? { authorization: `Bearer ${token}` } : {};
+  const afterState = await fetchJsonAware(stateUrl, {
+    headers: {
+      ...commonHeaders,
+      ...authHeaders,
+      cookie: cookieHeader(cookies)
+    }
+  });
+
+  const defaultApiUrls = [
+    `${apiBase}/login/state`,
+    `${apiBase}/game/info/user/`,
+    `${apiBase}/market`,
+    `${apiBase}/game/market`,
+    `${apiBase}/standings`,
+    `${apiBase}/lineup`
+  ];
+  const apiUrls = splitEnvList(env("COMMUNIO_API_FETCH_URLS"), defaultApiUrls);
+  const pages = [];
+
+  for (const url of apiUrls) {
+    try {
+      pages.push(await fetchJsonAware(url, {
+        headers: {
+          ...commonHeaders,
+          ...authHeaders,
+          cookie: cookieHeader(cookies)
+        }
+      }));
+    } catch (error) {
+      pages.push({
+        url,
+        error: error.message
+      });
+    }
+  }
+
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    apiBase,
+    beforeState: {
+      url: stateUrl,
+      status: beforeState.status,
+      contentType: beforeState.contentType,
+      snippet: beforeState.snippet
+    },
+    login: {
+      url: loginUrl,
+      status: loginResult.status,
+      location: loginResult.location,
+      contentType: loginResult.contentType,
+      cookiesReceived: cookies.length,
+      tokenReceived: Boolean(token),
+      snippet: loginResult.snippet
+    },
+    afterState: {
+      url: stateUrl,
+      status: afterState.status,
+      contentType: afterState.contentType,
+      snippet: afterState.snippet
+    },
+    pages: pages.map((page) => ({
+      url: page.url,
+      status: page.status,
+      contentType: page.contentType,
+      location: page.location,
+      snippet: page.snippet,
+      error: page.error
+    }))
+  };
+
+  const targetPath = await writeJson("comunio-api-login-test.json", payload);
+  console.log(`API-Login-Test gespeichert: ${targetPath}`);
+  console.log(`State vorher: ${beforeState.status}`);
+  console.log(`Login Status: ${loginResult.status}, Cookies: ${cookies.length}, Token: ${token ? "ja" : "nein"}`);
+  console.log(`State danach: ${afterState.status}`);
+  pages.forEach((page) => console.log(`${page.status || "ERR"} ${page.url} ${page.contentType || page.error || ""}`));
+}
+
 function checkEnv() {
   console.log(`Adapter-Datei: ${__filename}`);
   console.log(`ENV-Pfad: ${envPath}`);
@@ -343,7 +523,12 @@ async function main() {
     return;
   }
 
-  throw new Error(`Unbekannter Befehl: ${command}. Nutze probe, discover, env-check oder login.`);
+  if (command === "api-login") {
+    await apiLoginAndFetch();
+    return;
+  }
+
+  throw new Error(`Unbekannter Befehl: ${command}. Nutze probe, discover, env-check, login oder api-login.`);
 }
 
 main().catch((error) => {
