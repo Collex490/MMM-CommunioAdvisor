@@ -315,11 +315,15 @@ async function login() {
 function configuredUrls(apiBase) {
   const communityId = env("COMMUNIO_COMMUNITY_ID");
   const userId = env("COMMUNIO_USER_ID");
+  const livePeriod = env("COMMUNIO_LIVE_PERIOD");
+  const liveStandingsUrl = env("COMMUNIO_LIVE_STANDINGS_URL")
+    || (communityId && livePeriod ? `${apiBase}/communities/${communityId}/standings?period=${encodeURIComponent(livePeriod)}&wpe=true` : "");
   const configuredFetchUrls = [
     env("COMMUNIO_API_FETCH_URLS"),
     env("COMMUNIO_FETCH_URLS"),
     env("COMMUNIO_STANDINGS_TOTAL_URL"),
     env("COMMUNIO_STANDINGS_URL"),
+    liveStandingsUrl,
     env("COMMUNIO_MEMBERS_URL"),
     env("COMMUNIO_STATE_URL")
   ].filter(Boolean).join(",");
@@ -747,9 +751,14 @@ function mapLivePlayers(raw) {
   const squadPlayers = mapPlayers(pageByUrl(raw, "/squad"));
   const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
   const livePlayers = new Map();
+  const livePages = raw.pages.filter((page) => {
+    if (page.status !== 200 || !page.json) return false;
+    if (!page.url.includes("/standings")) return false;
+    if (page.url.includes("period=total")) return false;
+    return page.url.includes("period=") || page.url.includes("live");
+  });
 
-  raw.pages
-    .filter((page) => page.status === 200 && page.json)
+  livePages
     .forEach((page) => {
       walk(page.json, (item) => {
         if (!item || typeof item !== "object") return;
@@ -760,6 +769,7 @@ function mapLivePlayers(raw) {
         const livePoints = directNumberByKeys(item, [
           "livepoints",
           "live_points",
+          "points",
           "currentpoints",
           "current_points",
           "matchdaypoints",
