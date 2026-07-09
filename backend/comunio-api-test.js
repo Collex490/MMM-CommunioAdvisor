@@ -113,6 +113,10 @@ function extractEndpoints(text) {
     .slice(0, 300);
 }
 
+function countMatches(text, pattern) {
+  return (String(text || "").match(pattern) || []).length;
+}
+
 async function fetchText(url, options = {}) {
   const snippetLimit = options.snippetLimit || 1200;
   const includeText = Boolean(options.includeText);
@@ -124,8 +128,9 @@ async function fetchText(url, options = {}) {
     redirect: "manual",
     ...fetchOptions,
     headers: {
-      "user-agent": "MMM-CommunioAdvisor/0.1 test adapter",
+      "user-agent": "Mozilla/5.0 (X11; Linux armv7l) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 MMM-CommunioAdvisor/0.1",
       accept: "text/html,application/json,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "de-DE,de;q=0.9,en;q=0.7",
       ...(fetchOptions.headers || {})
     }
   });
@@ -216,7 +221,11 @@ async function discover() {
     page: {
       status: page.status,
       contentType: page.contentType,
-      scriptsFound: scripts.length
+      htmlLength: pageText.length,
+      scriptTags: countMatches(pageText, /<script/gi),
+      nextAssets: countMatches(pageText, /_next\/static/gi),
+      scriptsFound: scripts.length,
+      snippet: sanitizeSnippet(pageText, 5000)
     },
     scripts,
     endpoints: unique(endpoints),
