@@ -535,7 +535,7 @@ function mapPlayers(json) {
     .filter((item) => item && typeof item === "object" && objectName(item))
     .map((item) => ({
       name: objectName(item),
-      position: firstValue(item.position, item.positionName, item.role, ""),
+      position: firstValue(item.type, item.positionName, item.role, item.position, ""),
       marketValue: formatMoney(objectMoney(item)),
       points: numberish(firstValue(item.points, item.totalPoints, item.score)),
       raw: item
@@ -642,7 +642,16 @@ function positionGroup(position) {
 function lineupPlayersFromRaw(raw) {
   const lineup = pageByUrl(raw, "/lineup");
   const squad = pageByUrl(raw, "/squad");
-  const lineupPlayers = mapPlayers(lineup);
+  const directLineup = Object.values(lineup?.items?.lineup || {})
+    .filter((item) => item && typeof item === "object")
+    .map((item) => ({
+      name: objectName(item),
+      position: firstValue(item.type, item.positionName, item.role, item.position, ""),
+      marketValue: formatMoney(objectMoney(item)),
+      points: numberish(firstValue(item.points, item.totalPoints, item.score)),
+      raw: item
+    }));
+  const lineupPlayers = directLineup.length ? directLineup : mapPlayers(lineup);
   const squadPlayers = mapPlayers(squad).filter((player) => player.raw?.linedup === true);
   const players = lineupPlayers.length ? lineupPlayers : squadPlayers;
   const seen = new Set();
@@ -658,6 +667,12 @@ function lineupPlayersFromRaw(raw) {
 }
 
 function ownTacticFromRaw(raw) {
+  const lineupTactic = firstValue(
+    pageByUrl(raw, "/lineup")?.tactic,
+    deepFirstValueByKeys(pageByUrl(raw, "/lineup"), ["tactic", "formation"])
+  );
+  if (lineupTactic) return String(lineupTactic);
+
   const userId = env("COMMUNIO_USER_ID");
   const standingsPages = pagesByUrl(raw, "standings");
   let tactic = "";
@@ -675,7 +690,7 @@ function ownTacticFromRaw(raw) {
     });
   });
 
-  return tactic || String(deepFirstValueByKeys(pageByUrl(raw, "/lineup"), ["tactic", "formation"]) || "343");
+  return tactic || "343";
 }
 
 function tacticRows(tactic) {
