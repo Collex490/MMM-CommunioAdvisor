@@ -90,6 +90,12 @@ function recommendationFromMarketCandidate(candidate) {
 function mergeTransfers(previousTransfers, incomingTransfers) {
   const seen = new Set();
   const combined = [...(incomingTransfers || []), ...(previousTransfers || [])];
+  const blockedPhrases = [
+    "mittelfeld-joker",
+    "rotationsverteidiger",
+    "bankspieler",
+    "stammspieler"
+  ];
 
   return combined
     .filter((item) => {
@@ -101,6 +107,10 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
       ].join(" ").toLowerCase();
 
       if (text.includes("listed") || text.includes("gelistet")) {
+        return false;
+      }
+
+      if (blockedPhrases.some((phrase) => text.includes(phrase))) {
         return false;
       }
 
@@ -289,10 +299,14 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     club: mergeClub(previous.club, incoming.club),
     recommendations,
     marketCandidates,
-    standings: mergeStandings(previous.standings, incoming.standings),
-    transferTicker: isTransferNewsScreen(screenType)
-      ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
-      : previous.transferTicker || [],
+    standings: isFullApiScreen(screenType)
+      ? incoming.standings || []
+      : mergeStandings(previous.standings, incoming.standings),
+    transferTicker: isFullApiScreen(screenType)
+      ? mergeTransfers([], incoming.transferTicker)
+      : isTransferNewsScreen(screenType)
+        ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
+        : previous.transferTicker || [],
     livePlayers: Array.isArray(incoming.livePlayers)
       ? incoming.livePlayers
       : previous.livePlayers || [],

@@ -489,10 +489,12 @@ function mapStandingsFromRaw(raw) {
   if (validRows.length < 2) return [];
 
   const marketValues = mapTeamMarketValues(raw);
-  return standings.map((team) => ({
-    ...team,
-    marketValue: team.marketValue || marketValues.get(normalizeText(team.name)) || ""
-  }));
+  return standings
+    .filter((team) => knownClubs.includes(normalizeText(team.name)))
+    .map((team) => ({
+      ...team,
+      marketValue: team.marketValue || marketValues.get(normalizeText(team.name)) || ""
+    }));
 }
 
 function squadMarketValue(squadJson) {
@@ -561,6 +563,7 @@ function mapPlayers(json) {
       position: firstValue(item.type, item.positionName, item.role, item.position, ""),
       marketValue: formatMoney(objectMoney(item)),
       points: numberish(firstValue(item.points, item.totalPoints, item.score)),
+      photoUrl: playerPhotoUrl({ raw: item }),
       raw: item
     }))
     .slice(0, 30);
@@ -622,23 +625,23 @@ function mapTransferTicker(json) {
         const to = objectName(transfer.to || transfer.buyer || transfer.user || {});
         const price = formatMoney(firstValue(transfer.price, transfer.amount, transfer.value));
 
-        if (!player || (!from && !to)) return;
+        if (!player || (!from && !to) || !isUsefulTransferPlayer(player)) return;
 
         const action = fallbackAction === "transfer"
           ? `${from ? "von " + from : ""}${from && to ? " " : ""}${to ? "zu " + to : ""}`.trim()
           : fallbackAction;
         const text = fallbackAction === "verkauft"
-          ? `verkauft: ${player} von ${from || "unbekannt"} an ${to || "unbekannt"}${price ? ` fuer ${price}` : ""}`
+          ? `verkauft: ${player} von ${from || to || "unbekannt"} an Computer${price ? ` fuer ${price}` : ""}`
           : fallbackAction === "gekauft"
-            ? `gekauft: ${player} von ${from || "unbekannt"} zu ${to || "unbekannt"}${price ? ` fuer ${price}` : ""}`
+            ? `gekauft: ${player} von Computer zu ${to || from || "unbekannt"}${price ? ` fuer ${price}` : ""}`
             : `Transfer: ${player} ${action}${price ? ` fuer ${price}` : ""}`;
 
         structuredTransfers.push({
           action: fallbackAction,
           player,
-          club: to || from || "",
-          from,
-          to,
+          club: fallbackAction === "verkauft" ? (from || to || "") : (to || from || ""),
+          from: fallbackAction === "gekauft" ? "Computer" : from,
+          to: fallbackAction === "verkauft" ? "Computer" : to,
           price,
           text
         });
@@ -660,6 +663,7 @@ function mapTransferTicker(json) {
 
   return collectText(json)
     .filter((text) => /gekauft|verkauft|transfer|wechselt|kauf|verkauf/i.test(text))
+    .filter((text) => isUsefulTransferPlayer(text))
     .map((text) => ({
       action: /verkauft|verkauf/i.test(text) ? "verkauft" : "gekauft",
       player: text.replace(/\s+/g, " ").slice(0, 90),
@@ -667,6 +671,18 @@ function mapTransferTicker(json) {
       price: ""
     }))
     .slice(0, 12);
+}
+
+function isUsefulTransferPlayer(value) {
+  const text = normalizeText(value);
+  if (!text) return false;
+  return ![
+    "mittelfeld-joker",
+    "rotationsverteidiger",
+    "bankspieler",
+    "stammspieler",
+    "unbekannt"
+  ].some((phrase) => text.includes(phrase));
 }
 
 function findBudget(json) {
@@ -1037,7 +1053,7 @@ function buildAnalysis(raw, generatedLineupImage) {
     .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller));
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
-  const budget = findBudget(offers) || findBudget(lineup) || findBudget(squad);
+  const budget = findBudget(lineup) || findBudget(squad);
   const lowestPointPlayer = [...squadPlayers]
     .filter((player) => player.name && normalizeText(player.name) !== "computer")
     .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
@@ -1115,7 +1131,8 @@ function buildAnalysis(raw, generatedLineupImage) {
       name: player.name,
       position: player.position,
       marketValue: player.marketValue,
-      points: player.points
+      points: player.points,
+      photoUrl: player.photoUrl
     })),
     lineupImage: generatedLineupImage || undefined,
     squadInsights: {
