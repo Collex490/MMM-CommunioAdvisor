@@ -100,7 +100,7 @@ Module.register("MMM-CommunioAdvisor", {
     grid.appendChild(this.buildCard("Budget-Hinweis", recommendations.budget, "budget"));
     mainColumn.appendChild(grid);
     mainColumn.appendChild(this.buildStatusStrip(data));
-    mainColumn.appendChild(this.buildLivePlayers(data.livePlayers || data.livePoints || []));
+    mainColumn.appendChild(this.buildLivePlayers(data));
 
     const sideColumn = document.createElement("div");
     sideColumn.className = "communio-advisor__side-column";
@@ -327,12 +327,24 @@ Module.register("MMM-CommunioAdvisor", {
     return strip;
   },
 
-  buildLivePlayers(players) {
-    const livePlayers = (Array.isArray(players) ? players : [])
+  buildLivePlayers(data) {
+    const sourcePlayers = data.livePlayers || data.livePoints || [];
+    const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
       .filter((player) => player && (player.livePoints !== undefined || player.points !== undefined || player.status))
       .slice(0, 6);
+    const fallbackPlayers = (Array.isArray(data.squadPlayers) ? data.squadPlayers : [])
+      .filter((player) => player && player.name)
+      .sort((a, b) => (b.points ?? -999) - (a.points ?? -999))
+      .slice(0, 6)
+      .map((player) => ({
+        ...player,
+        status: player.status || "Kader",
+        livePoints: player.livePoints ?? player.points
+      }));
+    const players = livePlayers.length ? livePlayers : fallbackPlayers;
+    const isLive = livePlayers.length > 0;
 
-    if (!livePlayers.length) {
+    if (!players.length) {
       return document.createDocumentFragment();
     }
 
@@ -348,7 +360,7 @@ Module.register("MMM-CommunioAdvisor", {
 
     const state = document.createElement("div");
     state.className = "communio-advisor__live-state";
-    state.textContent = "Spiel laeuft";
+    state.textContent = isLive ? "Spiel laeuft" : "Kader-Vorschau";
 
     header.appendChild(title);
     header.appendChild(state);
@@ -357,7 +369,7 @@ Module.register("MMM-CommunioAdvisor", {
     const list = document.createElement("div");
     list.className = "communio-advisor__live-list";
 
-    livePlayers.forEach((player) => {
+    players.forEach((player) => {
       const item = document.createElement("div");
       item.className = "communio-advisor__live-player";
 
