@@ -965,7 +965,16 @@ function buildAnalysis(raw, generatedLineupImage) {
   const highValueCandidate = [...squadPlayers]
     .filter((player) => player.name && normalizeText(player.name) !== "computer")
     .sort((a, b) => (numberish(b.marketValue) || 0) - (numberish(a.marketValue) || 0))[0];
-  const roleRisk = lowestPointPlayer || highValueCandidate || squadPlayers[0];
+  const roleRisk = [...squadPlayers]
+    .filter((player) => player.name && normalizeText(player.name) !== "computer")
+    .filter((player) => normalizeText(player.name) !== normalizeText(lowestPointPlayer?.name))
+    .sort((a, b) => {
+      const pointsA = a.points ?? 9999;
+      const pointsB = b.points ?? 9999;
+      const valueA = numberish(a.marketValue) || 0;
+      const valueB = numberish(b.marketValue) || 0;
+      return pointsA - pointsB || valueB - valueA;
+    })[0] || highValueCandidate || lowestPointPlayer || squadPlayers[0];
 
   return {
     league: "WM Comunio",
@@ -1018,6 +1027,12 @@ function buildAnalysis(raw, generatedLineupImage) {
     standings,
     transferTicker: news.flatMap(mapTransferTicker).slice(0, 12),
     budgetStatus: budget ? { amount: budget, note: "Aus Comunio-API erkannt" } : {},
+    squadPlayers: squadPlayers.map((player) => ({
+      name: player.name,
+      position: player.position,
+      marketValue: player.marketValue,
+      points: player.points
+    })),
     lineupImage: generatedLineupImage || undefined,
     squadInsights: {
       keep: squadPlayers.slice(0, 2).map((player) => `${player.name} im Kader behalten und Rolle pruefen`),

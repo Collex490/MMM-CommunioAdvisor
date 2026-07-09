@@ -45,6 +45,7 @@ function compactPayloadForAnalysis(rawPayload, currentData) {
       transferTicker: currentData.transferTicker || [],
       budgetStatus: currentData.budgetStatus || {},
       marketCandidates: currentData.marketCandidates || [],
+      squadPlayers: currentData.squadPlayers || [],
       squadInsights: currentData.squadInsights || {},
       matchdays: currentData.matchdays || [],
       lineupImage: currentData.lineupImage || {},
@@ -73,7 +74,10 @@ async function analyzeComunioRawData(payload) {
           "Beste Kaufempfehlung muss aus aktuellen Marktangeboten/offers kommen. Nutze niemals 'Computer' als Spielername.",
           "Verkaufskandidat muss aus dem eigenen Kader kommen und kurz begruenden, warum Verkauf oder Tausch sinnvoll sein koennte.",
           "Startelf-Risiko bedeutet: ein eigener Spieler mit unsicherer Rolle, schwacher Preis-Leistung, Rotations-/Minutenrisiko oder Bedarf zum Beobachten.",
+          "Verkaufskandidat und Startelf-Risiko sollen unterschiedliche Spieler sein, wenn mindestens zwei eigene Kaderspieler verfuegbar sind.",
           "Budget-Hinweis soll den erkannten Kontostand praktisch einordnen: aggressiv bieten, Reserve halten, erst verkaufen oder abwarten.",
+          "squadInsights.keep, squadInsights.sell und squadInsights.watch muessen kurze begruendete Saetze sein, nicht nur Spielernamen. Format pro Eintrag: 'Spieler: konkrete Begruendung in maximal 16 Woertern'.",
+          "Nenne im Kader-Check nur Spieler, die im aktuellen Kader oder in der aktuellen Aufstellung vorkommen. Verkauft- oder Transfernews-Spieler duerfen dort nicht auftauchen, wenn sie nicht mehr im Kader stehen.",
           "Wenn es nur Login-/Fehlerseiten sind, lasse nicht belegbare Bereiche leer."
         ].join(" ")
       },
