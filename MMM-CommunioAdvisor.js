@@ -188,6 +188,17 @@ Module.register("MMM-CommunioAdvisor", {
     return data.clubLogo?.url || data.clubLogo || "";
   },
 
+  formatCurrencyText(value) {
+    const text = String(value || "").trim();
+    if (!text || /€|eur|offen|unbekannt|^-$/i.test(text)) {
+      return text;
+    }
+
+    return /^\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?$|^\d{4,}$/.test(text)
+      ? `${text} €`
+      : text;
+  },
+
   buildCard(label, item, type) {
     const card = document.createElement("div");
     card.className = `communio-advisor__card communio-advisor__card--${type}`;
@@ -224,7 +235,7 @@ Module.register("MMM-CommunioAdvisor", {
     const ownTotalPoints = ownTeam?.totalPoints ?? ownTeam?.points;
     const focus = this.getMatchdayStatus(data) || this.getFocusStatus(data);
     const items = [
-      ["Budget", budget.amount || budget.label || "offen"],
+      ["Budget", this.formatCurrencyText(budget.amount || budget.label || "offen")],
       ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
       ["Punkte", ownTotalPoints != null ? `${ownTotalPoints} P` : "-"],
       [focus.label, focus.value]
@@ -385,7 +396,7 @@ Module.register("MMM-CommunioAdvisor", {
 
       const marketValue = document.createElement("span");
       marketValue.className = "communio-advisor__standing-market";
-      marketValue.textContent = team.marketValue || team.value || "";
+      marketValue.textContent = this.formatCurrencyText(team.marketValue || team.value || "");
 
       teamBlock.appendChild(name);
       if (marketValue.textContent) {
@@ -438,8 +449,15 @@ Module.register("MMM-CommunioAdvisor", {
       .filter((item) => this.isHumanTransfer(item))
       .slice(0, 10)
       .map((item) => {
-        const price = item.price ? ` fuer ${item.price}` : "";
-        return `${item.action || "Update"}: ${item.player || "Unbekannt"} zu ${item.club || "unbekannt"}${price}`;
+        if (item.text) {
+          return item.text.replace(/\bfuer\b/g, "für");
+        }
+
+        const price = item.price ? ` für ${this.formatCurrencyText(item.price)}` : "";
+        const direction = item.from || item.to
+          ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
+          : `zu ${item.club || "unbekannt"}`;
+        return `${item.action || "Update"}: ${item.player || "Unbekannt"} ${direction}${price}`;
       })
       .join("  +++  ");
 
@@ -459,7 +477,6 @@ Module.register("MMM-CommunioAdvisor", {
       item?.price
     ].join(" ").toLowerCase();
     return Boolean(item?.player || item?.action)
-      && !text.includes("computer")
       && !text.includes("listed")
       && !text.includes("gelistet");
   },
