@@ -73,6 +73,7 @@ async function analyzeComunioRawData(payload) {
           "Schreibe auch niemals 'Noch keine Daten', 'nicht verwertbar' oder 'keine auslesbaren Daten', wenn latestStructuredData bereits Markt, Kader, Budget oder Tabelle enthaelt.",
           "Beste Kaufempfehlung muss aus aktuellen Marktangeboten/offers kommen. Nutze niemals 'Computer' als Spielername.",
           "Empfiehl keinen Spieler zum Kauf, der in squadPlayers steht oder dessen Marktangebot vom eigenen Club Pasta La Vista FC stammt; solche Spieler sind eigene Verkaufsangebote.",
+          "Wenn marketCandidates leer ist, setze recommendations.buy auf title 'Keine Kaufempfehlung' mit kurzer Begruendung: kein fremdes Angebot attraktiv, Budget halten.",
           "Verkaufskandidat muss aus dem eigenen Kader kommen und kurz begruenden, warum Verkauf oder Tausch sinnvoll sein koennte.",
           "Startelf-Risiko bedeutet: ein eigener Spieler mit unsicherer Rolle, schwacher Preis-Leistung, Rotations-/Minutenrisiko oder Bedarf zum Beobachten.",
           "Verkaufskandidat und Startelf-Risiko sollen unterschiedliche Spieler sein, wenn mindestens zwei eigene Kaderspieler verfuegbar sind.",
@@ -102,6 +103,14 @@ async function main() {
   const currentData = await readJsonIfExists(dataPath, {});
   const payload = compactPayloadForAnalysis(rawPayload, currentData);
   const analysis = normalizeAnalysis(await analyzeComunioRawData(payload));
+  if (!analysis.marketCandidates?.length) {
+    analysis.recommendations = analysis.recommendations || {};
+    analysis.recommendations.buy = {
+      title: "Keine Kaufempfehlung",
+      reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten.",
+      confidence: "hoch"
+    };
+  }
   analysis.source = {
     platform: "Comunio",
     screenType: "api-analysis"

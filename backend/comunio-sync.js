@@ -1007,7 +1007,11 @@ function buildAnalysis(raw, generatedLineupImage) {
             reason: `${marketCandidates[0].price ? `Bei ${marketCandidates[0].price} ` : ""}nur zuschlagen, wenn danach noch Reserve bleibt; als Marktchance gegen die Konkurrenz einplanen.`,
             confidence: "mittel"
           }
-        : undefined,
+        : {
+            title: "Keine Kaufempfehlung",
+            reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten und auf bessere Chancen warten.",
+            confidence: "hoch"
+          },
       sell: lowestPointPlayer
         ? {
             player: lowestPointPlayer.name,

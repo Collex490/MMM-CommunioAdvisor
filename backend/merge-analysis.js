@@ -264,9 +264,11 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     return incoming;
   }
 
-  const marketCandidates = screenType === "transfermarket"
-    ? mergeMarketCandidates(previous.marketCandidates, incoming.marketCandidates)
-    : previous.marketCandidates || [];
+  const marketCandidates = isFullApiScreen(screenType)
+    ? incoming.marketCandidates || []
+    : screenType === "transfermarket"
+      ? mergeMarketCandidates(previous.marketCandidates, incoming.marketCandidates)
+      : previous.marketCandidates || [];
   const recommendations = mergeRecommendations(
     previous.recommendations,
     incoming.recommendations,
