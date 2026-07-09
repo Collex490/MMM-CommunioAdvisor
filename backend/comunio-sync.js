@@ -272,6 +272,12 @@ async function login() {
 function configuredUrls(apiBase) {
   const communityId = env("COMMUNIO_COMMUNITY_ID");
   const userId = env("COMMUNIO_USER_ID");
+  const configuredFetchUrls = [
+    env("COMMUNIO_API_FETCH_URLS"),
+    env("COMMUNIO_FETCH_URLS"),
+    env("COMMUNIO_STANDINGS_TOTAL_URL"),
+    env("COMMUNIO_STANDINGS_URL")
+  ].filter(Boolean).join(",");
   const fallback = [
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/lineup` : "",
     userId ? `${apiBase}/users/${userId}/squad` : "",
@@ -283,7 +289,7 @@ function configuredUrls(apiBase) {
     communityId ? `${apiBase}/communities/${communityId}/standings` : ""
   ].filter(Boolean);
 
-  return splitEnvList(env("COMMUNIO_API_FETCH_URLS"), fallback);
+  return splitEnvList(configuredFetchUrls, fallback);
 }
 
 async function fetchComunioData() {
