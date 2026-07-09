@@ -52,14 +52,16 @@ function hasUsefulRecommendation(recommendation) {
   return Boolean(recommendation.player || recommendation.title || recommendation.reason);
 }
 
-function mergeRecommendations(previous, incoming) {
+function mergeRecommendations(previous, incoming, replacePrevious = false) {
   const result = {};
 
-  ["buy", "sell", "risk", "budget"].forEach((key) => {
-    if (hasUsefulRecommendation(previous?.[key])) {
-      result[key] = previous[key];
-    }
-  });
+  if (!replacePrevious) {
+    ["buy", "sell", "risk", "budget"].forEach((key) => {
+      if (hasUsefulRecommendation(previous?.[key])) {
+        result[key] = previous[key];
+      }
+    });
+  }
 
   ["buy", "sell", "risk", "budget"].forEach((key) => {
     if (hasUsefulRecommendation(incoming?.[key])) {
@@ -152,6 +154,10 @@ function isTransferNewsScreen(screenType) {
   return screenType === "transfernews" || screenType === "transfers";
 }
 
+function isFullApiScreen(screenType) {
+  return screenType === "api" || screenType === "api-analysis";
+}
+
 function mergeStandings(previousStandings, incomingStandings) {
   const byTeam = new Map();
 
@@ -214,6 +220,10 @@ function mergeSquadInsights(previous, incoming) {
   };
 }
 
+function shouldReplaceSquadInsights(screenType) {
+  return ["api", "api-analysis", "squad"].includes(screenType);
+}
+
 function mergeBudgetStatus(previous, incoming, screenType) {
   if (screenType !== "budget") {
     return previous || {};
@@ -257,7 +267,11 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
   const marketCandidates = screenType === "transfermarket"
     ? mergeMarketCandidates(previous.marketCandidates, incoming.marketCandidates)
     : previous.marketCandidates || [];
-  const recommendations = mergeRecommendations(previous.recommendations, incoming.recommendations);
+  const recommendations = mergeRecommendations(
+    previous.recommendations,
+    incoming.recommendations,
+    isFullApiScreen(screenType)
+  );
 
   if (screenType === "transfermarket" && !hasUsefulRecommendation(recommendations.buy)) {
     const buyFromMarket = recommendationFromMarketCandidate(marketCandidates[0]);
@@ -278,7 +292,12 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
       ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
       : previous.transferTicker || [],
     budgetStatus: mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus, screenType),
-    squadInsights: mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
+    squadPlayers: Array.isArray(incoming.squadPlayers) && incoming.squadPlayers.length
+      ? incoming.squadPlayers
+      : previous.squadPlayers || [],
+    squadInsights: shouldReplaceSquadInsights(screenType)
+      ? incoming.squadInsights
+      : mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
     lineupImage: incoming.lineupImage?.url ? incoming.lineupImage : previous.lineupImage,
     rumorKitchen: incoming.rumorKitchen || previous.rumorKitchen,
     rumorImage: incoming.rumorImage?.url ? incoming.rumorImage : previous.rumorImage,

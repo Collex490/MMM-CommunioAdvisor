@@ -217,6 +217,11 @@ function titleCaseClubName(value) {
   return String(value || "");
 }
 
+function isOwnClubName(value) {
+  const normalized = normalizeText(value);
+  return normalized === "pasta la vista fc" || normalized === "pasta la vista";
+}
+
 function directNumberByKeys(item, keys) {
   const lower = lowerKeys(item);
   for (const key of keys) {
@@ -565,15 +570,17 @@ function mapOffers(json) {
     .map((item, index) => {
       const player = item.tradable || item._embedded?.tradable || item.player || item._embedded?.player || item;
       const playerName = objectName(player);
+      const seller = objectName(item.seller || item.owner || item.user || item.from || item._embedded?.seller || {});
       return {
         player: playerName,
         price: formatMoney(firstValue(item.price, item.amount, item.value, objectMoney(player))),
-        seller: objectName(item.seller || item.owner || item.user || item.from || item._embedded?.seller || {}) || "Transfermarkt",
+        seller: seller || "Transfermarkt",
+        isOwnListing: isOwnClubName(seller) || Boolean(item.isOwn || item.ownOffer || item.ownedByCurrentUser),
         reason: "Aktuelles Marktangebot mit sichtbarem Spieler und Preis.",
         priority: index + 1
       };
     })
-    .filter((item) => item.player && normalizeText(item.player) !== "computer")
+    .filter((item) => item.player && normalizeText(item.player) !== "computer" && !item.isOwnListing)
     .slice(0, 12);
 }
 
@@ -955,7 +962,9 @@ function buildAnalysis(raw, generatedLineupImage) {
     .filter((page) => page.status === 200 && page.url.includes("/news"))
     .map((page) => page.json);
   const squadPlayers = mapPlayers(squad);
-  const marketCandidates = mapOffers(offers);
+  const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
+  const marketCandidates = mapOffers(offers)
+    .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller));
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
   const budget = findBudget(offers) || findBudget(lineup) || findBudget(squad);
