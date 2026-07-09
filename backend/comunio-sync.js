@@ -25,6 +25,10 @@ const dataPath = env("COMMUNIO_ADVISOR_DATA_PATH")
   || path.join(__dirname, "..", "data", "latest.json");
 const rawPath = env("COMMUNIO_API_RAW_PATH")
   || path.join(__dirname, "..", "data", "comunio-api-raw.json");
+const uploadDir = env("COMMUNIO_ADVISOR_UPLOAD_DIR")
+  || path.join(__dirname, "..", "uploads");
+const publicUploadBase = env("COMMUNIO_ADVISOR_PUBLIC_UPLOAD_BASE")
+  || "modules/MMM-CommunioAdvisor/uploads";
 
 function splitEnvList(value, fallback = []) {
   return String(value || "")
@@ -240,6 +244,27 @@ async function fetchJson(url, options = {}) {
   };
 }
 
+async function fetchBinary(url, token) {
+  const response = await fetch(url, {
+    headers: {
+      "user-agent": "Mozilla/5.0 (X11; Linux armv7l) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 MMM-CommunioAdvisor/0.1",
+      "accept-language": "de-DE,de;q=0.9,en;q=0.7",
+      accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      authorization: `Bearer ${token}`,
+      origin: "https://www.comunio.de",
+      referer: "https://www.comunio.de/wm"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Bild konnte nicht geladen werden: HTTP ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") || "image/jpeg";
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return `data:${contentType};base64,${buffer.toString("base64")}`;
+}
+
 async function login() {
   const username = env("COMMUNIO_USERNAME");
   const password = env("COMMUNIO_PASSWORD");
@@ -327,7 +352,7 @@ async function fetchComunioData() {
 
   await fs.mkdir(path.dirname(rawPath), { recursive: true });
   await fs.writeFile(rawPath, JSON.stringify(raw, null, 2), "utf8");
-  return raw;
+  return { raw, token };
 }
 
 function pageByUrl(raw, part) {
@@ -588,7 +613,168 @@ function mapMatchdays(json) {
     .slice(0, 8);
 }
 
-function buildAnalysis(raw) {
+function escapeXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function playerPhotoUrl(player) {
+  return firstValue(
+    player.raw?._links?.photo?.href,
+    player.raw?.photo?.href,
+    player.raw?.player?._links?.photo?.href,
+    player.raw?.tradable?._links?.photo?.href,
+    ""
+  );
+}
+
+function positionGroup(position) {
+  const text = normalizeText(position);
+  if (text.includes("keeper") || text.includes("goal") || text.includes("torwart")) return "goalkeeper";
+  if (text.includes("defender") || text.includes("abwehr") || text.includes("defence")) return "defender";
+  if (text.includes("striker") || text.includes("sturm") || text.includes("forward")) return "striker";
+  return "midfielder";
+}
+
+function lineupPlayersFromRaw(raw) {
+  const lineup = pageByUrl(raw, "/lineup");
+  const squad = pageByUrl(raw, "/squad");
+  const lineupPlayers = mapPlayers(lineup);
+  const squadPlayers = mapPlayers(squad).filter((player) => player.raw?.linedup === true);
+  const players = lineupPlayers.length ? lineupPlayers : squadPlayers;
+  const seen = new Set();
+
+  return players
+    .filter((player) => {
+      const key = normalizeText(player.name);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 11);
+}
+
+function coordinatesForLineup(players) {
+  const rows = {
+    goalkeeper: players.filter((player) => positionGroup(player.position) === "goalkeeper"),
+    defender: players.filter((player) => positionGroup(player.position) === "defender"),
+    midfielder: players.filter((player) => positionGroup(player.position) === "midfielder"),
+    striker: players.filter((player) => positionGroup(player.position) === "striker")
+  };
+
+  if (!rows.goalkeeper.length && players.length >= 11) {
+    rows.goalkeeper = [players[0]];
+  }
+
+  const placed = new Set(rows.goalkeeper.map((player) => player.name));
+  rows.defender = rows.defender.filter((player) => !placed.has(player.name));
+  rows.midfielder = rows.midfielder.filter((player) => !placed.has(player.name));
+  rows.striker = rows.striker.filter((player) => !placed.has(player.name));
+
+  const distribute = (items, y) => {
+    const count = Math.max(items.length, 1);
+    return items.map((player, index) => ({
+      player,
+      x: 120 + ((560 / (count + 1)) * (index + 1)),
+      y
+    }));
+  };
+
+  return [
+    ...distribute(rows.striker, 145),
+    ...distribute(rows.midfielder, 285),
+    ...distribute(rows.defender, 420),
+    ...distribute(rows.goalkeeper, 545)
+  ];
+}
+
+async function renderGeneratedLineup(raw, token) {
+  const players = lineupPlayersFromRaw(raw);
+  if (!players.length) return null;
+
+  const photoCache = new Map();
+  for (const player of players) {
+    const url = playerPhotoUrl(player);
+    if (!url) continue;
+    try {
+      photoCache.set(player.name, await fetchBinary(url, token));
+    } catch {
+      // Missing photos should not break the whole lineup render.
+    }
+  }
+
+  const placed = coordinatesForLineup(players);
+  const cards = placed.map(({ player, x, y }, index) => {
+    const photo = photoCache.get(player.name);
+    const clipId = `playerPhoto${index}`;
+    const initials = player.name
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    return `
+      <g transform="translate(${Math.round(x - 42)}, ${Math.round(y - 54)})">
+        <rect x="0" y="0" width="84" height="108" rx="10" fill="#17345a" stroke="#e0b13f" stroke-width="2"/>
+        <clipPath id="${clipId}"><rect x="9" y="8" width="66" height="58" rx="8"/></clipPath>
+        ${photo
+          ? `<image href="${photo}" x="9" y="8" width="66" height="58" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>`
+          : `<rect x="9" y="8" width="66" height="58" rx="8" fill="#243447"/><text x="42" y="45" text-anchor="middle" font-size="20" fill="#e0b13f" font-weight="800">${escapeXml(initials)}</text>`}
+        <rect x="8" y="70" width="68" height="28" rx="6" fill="#10243f"/>
+        <text x="42" y="82" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="800">${escapeXml(player.name).slice(0, 16)}</text>
+        <text x="42" y="94" text-anchor="middle" font-size="8" fill="#d6d6d6">${escapeXml(player.position || "Spieler")}</text>
+        ${player.points !== undefined ? `<circle cx="72" cy="14" r="11" fill="#ffffff"/><text x="72" y="18" text-anchor="middle" font-size="10" fill="#2ba84a" font-weight="900">${player.points}</text>` : ""}
+      </g>`;
+  }).join("");
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="620" viewBox="0 0 800 620">
+  <defs>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f7f38"/>
+      <stop offset="1" stop-color="#1f5f2c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="800" height="620" rx="22" fill="#111"/>
+  <g transform="translate(45, 38)" filter="url(#shadow)">
+    <rect width="710" height="540" rx="18" fill="url(#grass)" stroke="#e0b13f" stroke-width="3"/>
+    <g stroke="#dbe8d4" stroke-width="3" fill="none" opacity="0.7">
+      <rect x="34" y="28" width="642" height="484"/>
+      <line x1="34" y1="270" x2="676" y2="270"/>
+      <circle cx="355" cy="270" r="62"/>
+      <rect x="221" y="28" width="268" height="76"/>
+      <rect x="221" y="436" width="268" height="76"/>
+      <rect x="283" y="28" width="144" height="35"/>
+      <rect x="283" y="477" width="144" height="35"/>
+    </g>
+    <g opacity="0.16">
+      ${Array.from({ length: 9 }, (_, index) => `<rect x="${34 + index * 72}" y="28" width="36" height="484" fill="#ffffff"/>`).join("")}
+    </g>
+    ${cards}
+  </g>
+  <text x="400" y="28" text-anchor="middle" fill="#e0b13f" font-size="18" font-weight="900" letter-spacing="1">Pasta La Vista FC - Automatische Aufstellung</text>
+  <text x="400" y="604" text-anchor="middle" fill="#d6d6d6" font-size="13">Generiert aus Comunio API - ${escapeXml(new Date().toLocaleString("de-DE"))}</text>
+</svg>`;
+
+  await fs.mkdir(uploadDir, { recursive: true });
+  const filename = "generated-lineup.svg";
+  await fs.writeFile(path.join(uploadDir, filename), svg, "utf8");
+
+  return {
+    url: `${publicUploadBase}/${filename}`,
+    alt: "Automatisch generierte Teamaufstellung",
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function buildAnalysis(raw, generatedLineupImage) {
   const lineup = pageByUrl(raw, "/lineup");
   const squad = pageByUrl(raw, "/squad");
   const offers = pageByUrl(raw, "/offers?current");
@@ -653,6 +839,7 @@ function buildAnalysis(raw) {
     standings,
     transferTicker: news.flatMap(mapTransferTicker).slice(0, 12),
     budgetStatus: budget ? { amount: budget, note: "Aus Comunio-API erkannt" } : {},
+    lineupImage: generatedLineupImage || undefined,
     squadInsights: {
       keep: squadPlayers.slice(0, 2).map((player) => `${player.name} im Kader behalten und Rolle pruefen`),
       sell: squadPlayers.slice(-2).map((player) => `${player.name} als moeglichen Tausch-/Verkaufskandidaten pruefen`),
@@ -668,8 +855,9 @@ function buildAnalysis(raw) {
 }
 
 async function main() {
-  const raw = await fetchComunioData();
-  const analysis = buildAnalysis(raw);
+  const { raw, token } = await fetchComunioData();
+  const generatedLineupImage = await renderGeneratedLineup(raw, token);
+  const analysis = buildAnalysis(raw, generatedLineupImage);
   const merged = await mergeWithExisting(dataPath, analysis);
 
   await fs.mkdir(path.dirname(dataPath), { recursive: true });
@@ -677,6 +865,9 @@ async function main() {
 
   console.log(`Comunio-API-Rohdaten gespeichert: ${rawPath}`);
   console.log(`Comunio-API-Daten in latest.json uebernommen: ${dataPath}`);
+  if (generatedLineupImage?.url) {
+    console.log(`Aufstellungsbild generiert: ${generatedLineupImage.url}`);
+  }
   console.log(`Tabelle: ${analysis.standings.length}, Kaderhinweise: ${analysis.squadInsights.keep.length + analysis.squadInsights.sell.length}, Markt: ${analysis.marketCandidates.length}`);
 }
 
