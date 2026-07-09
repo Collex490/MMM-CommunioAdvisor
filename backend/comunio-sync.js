@@ -789,13 +789,10 @@ function mapLivePlayers(raw) {
         const livePoints = directNumberByKeys(item, [
           "livepoints",
           "live_points",
-          "points",
           "currentpoints",
           "current_points",
-          "matchdaypoints",
-          "matchday_points",
-          "lastpoints",
-          "last_points"
+          "currentmatchpoints",
+          "current_match_points"
         ]);
 
         const hasLiveState = Boolean(directValueByKeys(item, [

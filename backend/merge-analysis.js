@@ -87,6 +87,18 @@ function recommendationFromMarketCandidate(candidate) {
   };
 }
 
+function recommendationFromBudgetStatus(budgetStatus) {
+  if (!budgetStatus?.amount) {
+    return null;
+  }
+
+  return {
+    title: "Budget gezielt einsetzen",
+    reason: `Mit ${budgetStatus.amount} nur selektiv bieten und Reserve fuer Nachkaeufe halten.`,
+    confidence: "hoch"
+  };
+}
+
 function mergeTransfers(previousTransfers, incomingTransfers) {
   const seen = new Set();
   const combined = [...(incomingTransfers || []), ...(previousTransfers || [])];
@@ -284,6 +296,14 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     incoming.recommendations,
     isFullApiScreen(screenType)
   );
+  const budgetStatus = mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus, screenType);
+
+  if (isFullApiScreen(screenType) && !incoming.budgetStatus?.amount) {
+    const budgetRecommendation = recommendationFromBudgetStatus(budgetStatus);
+    if (budgetRecommendation) {
+      recommendations.budget = budgetRecommendation;
+    }
+  }
 
   if (screenType === "transfermarket" && !hasUsefulRecommendation(recommendations.buy)) {
     const buyFromMarket = recommendationFromMarketCandidate(marketCandidates[0]);
@@ -310,7 +330,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     livePlayers: Array.isArray(incoming.livePlayers)
       ? incoming.livePlayers
       : previous.livePlayers || [],
-    budgetStatus: mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus, screenType),
+    budgetStatus,
     squadPlayers: Array.isArray(incoming.squadPlayers) && incoming.squadPlayers.length
       ? incoming.squadPlayers
       : previous.squadPlayers || [],
