@@ -57,9 +57,11 @@ function tokenFromPayload(payload) {
 
 function formatMoney(value) {
   if (value === null || value === undefined || value === "") return "";
-  if (typeof value === "string") return value;
-  if (typeof value !== "number" || !Number.isFinite(value)) return String(value);
-  return Math.round(value).toLocaleString("de-DE");
+  const formatted = typeof value === "number" && Number.isFinite(value)
+    ? Math.round(value).toLocaleString("de-DE")
+    : String(value).trim();
+  if (!formatted) return "";
+  return /€|eur/i.test(formatted) ? formatted : `${formatted} €`;
 }
 
 function firstValue(...values) {
@@ -576,6 +578,61 @@ function collectText(value) {
 }
 
 function mapTransferTicker(json) {
+  const structuredTransfers = [];
+
+  walk(json, (item) => {
+    const message = item?.message;
+    if (!message || typeof message !== "object") return;
+
+    const groups = [
+      ["FROM_COMPUTER", "gekauft"],
+      ["TO_COMPUTER", "verkauft"],
+      ["BETWEEN_USERS", "transfer"]
+    ];
+
+    groups.forEach(([key, fallbackAction]) => {
+      asArray(message[key]).forEach((transfer) => {
+        const player = objectName(transfer.tradable || transfer.player || transfer);
+        const from = objectName(transfer.from || transfer.seller || {});
+        const to = objectName(transfer.to || transfer.buyer || transfer.user || {});
+        const price = formatMoney(firstValue(transfer.price, transfer.amount, transfer.value));
+
+        if (!player || (!from && !to)) return;
+
+        const action = fallbackAction === "transfer"
+          ? `${from ? "von " + from : ""}${from && to ? " " : ""}${to ? "zu " + to : ""}`.trim()
+          : fallbackAction;
+        const text = fallbackAction === "verkauft"
+          ? `verkauft: ${player} von ${from || "unbekannt"} an ${to || "unbekannt"}${price ? ` fuer ${price}` : ""}`
+          : fallbackAction === "gekauft"
+            ? `gekauft: ${player} von ${from || "unbekannt"} zu ${to || "unbekannt"}${price ? ` fuer ${price}` : ""}`
+            : `Transfer: ${player} ${action}${price ? ` fuer ${price}` : ""}`;
+
+        structuredTransfers.push({
+          action: fallbackAction,
+          player,
+          club: to || from || "",
+          from,
+          to,
+          price,
+          text
+        });
+      });
+    });
+  });
+
+  if (structuredTransfers.length) {
+    const seen = new Set();
+    return structuredTransfers
+      .filter((item) => {
+        const key = [item.action, item.player, item.from, item.to, item.price].join("|").toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 12);
+  }
+
   return collectText(json)
     .filter((text) => /gekauft|verkauft|transfer|wechselt|kauf|verkauf/i.test(text))
     .map((text) => ({

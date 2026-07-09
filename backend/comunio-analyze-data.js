@@ -14,8 +14,9 @@ const client = new OpenAI({
 
 const dataPath = process.env.COMMUNIO_ADVISOR_DATA_PATH
   || path.join(__dirname, "..", "data", "latest.json");
-const sourcePath = process.env.COMUNIO_API_ANALYZE_SOURCE
-  || path.join(__dirname, "..", "data", "comunio-login-test.json");
+const sourcePath = process.env.COMMUNIO_API_ANALYZE_SOURCE
+  || process.env.COMUNIO_API_ANALYZE_SOURCE
+  || path.join(__dirname, "..", "data", "comunio-api-raw.json");
 
 async function analyzeComunioRawData(rawPayload) {
   const response = await client.chat.completions.create({
@@ -29,6 +30,12 @@ async function analyzeComunioRawData(rawPayload) {
           "Gib ausschliesslich JSON im bekannten ComunioAdvisor-Schema zurueck.",
           "Erfinde keine exakten Spieler, Punkte, Marktwerte oder Budgets, wenn sie in den Rohdaten nicht stehen.",
           "Nutze die Daten, um Tabelle, Kader, Aufstellung, Transfers, Transfermarkt, Budget und Managerempfehlungen zu extrahieren.",
+          "Die vier recommendation-Kacheln muessen analytische Manager-Hinweise sein, keine technischen Meta-Saetze.",
+          "Schreibe niemals Formulierungen wie 'API geladen', 'Screenshot sichtbar', 'Computer ist aktuell sichtbar' oder 'nach ChatGPT-Analyse verfeinern' in Kacheln.",
+          "Beste Kaufempfehlung muss aus aktuellen Marktangeboten/offers kommen. Nutze niemals 'Computer' als Spielername.",
+          "Verkaufskandidat muss aus dem eigenen Kader kommen und kurz begruenden, warum Verkauf oder Tausch sinnvoll sein koennte.",
+          "Startelf-Risiko bedeutet: ein eigener Spieler mit unsicherer Rolle, schwacher Preis-Leistung, Rotations-/Minutenrisiko oder Bedarf zum Beobachten.",
+          "Budget-Hinweis soll den erkannten Kontostand praktisch einordnen: aggressiv bieten, Reserve halten, erst verkaufen oder abwarten.",
           "Wenn es nur Login-/Fehlerseiten sind, lasse nicht belegbare Bereiche leer."
         ].join(" ")
       },
@@ -38,7 +45,7 @@ async function analyzeComunioRawData(rawPayload) {
           "Analysiere diese Comunio-Rohdaten.",
           "Rollenspielwelt: Pasta La Vista FC, Patron Co, Gennaro Gattuso, Motto Mangia Lotta Vinci, Captain Sorloth; Sporting Bolzackerer; Squadra Absenta.",
           "Schema: { league: string, source: { platform: string, screenType: string }, club: { name: string, boss: string, coach: string, colors: string[], motto: string, captain: string }, recommendations: { buy: { player: string, reason: string, confidence: string }, sell: { player: string, reason: string, confidence: string }, risk: { player: string, reason: string, confidence: string }, budget: { title: string, reason: string, confidence: string } }, marketCandidates: [{ player: string, price: string, seller: string, reason: string, priority: number }], standings: [{ rank: number, name: string, matchdayPoints: number, totalPoints: number, marketValue: string, isUserClub: boolean }], transferTicker: [{ action: string, player: string, club: string, price: string }], budgetStatus: { amount: string, note: string }, squadInsights: { keep: string[], sell: string[], watch: string[] }, rumorKitchen: { headline: string, body: string }, generatedAt: string }.",
-          JSON.stringify(rawPayload).slice(0, 45000)
+          JSON.stringify(rawPayload).slice(0, 60000)
         ].join("\n\n")
       }
     ]
@@ -52,7 +59,7 @@ async function main() {
   const analysis = normalizeAnalysis(await analyzeComunioRawData(rawPayload));
   analysis.source = {
     platform: "Comunio",
-    screenType: "api-test"
+    screenType: "api-analysis"
   };
   analysis.generatedAt = new Date().toISOString();
 

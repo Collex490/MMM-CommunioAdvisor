@@ -32,7 +32,13 @@ function hasUsefulRecommendation(recommendation) {
     "kaufempfehlung offen",
     "verkaufskandidat offen",
     "startelf-risiko offen",
-    "budget-hinweis offen"
+    "budget-hinweis offen",
+    "api geladen",
+    "per api geladen",
+    "chatgpt-analyse",
+    "auf dem markt sichtbar",
+    "preis pruefen",
+    "preis prÃ¼fen"
   ];
 
   if (blockedPhrases.some((phrase) => text.includes(phrase))) {
@@ -88,13 +94,15 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
         item.price || ""
       ].join(" ").toLowerCase();
 
-      if (text.includes("computer") || text.includes("listed") || text.includes("gelistet")) {
+      if (text.includes("listed") || text.includes("gelistet")) {
         return false;
       }
 
       const key = [
         item.action || "",
         item.player || "",
+        item.from || "",
+        item.to || "",
         item.club || "",
         item.price || ""
       ].join("|").toLowerCase();
