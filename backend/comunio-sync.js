@@ -315,15 +315,19 @@ async function login() {
 function configuredUrls(apiBase) {
   const communityId = env("COMMUNIO_COMMUNITY_ID");
   const userId = env("COMMUNIO_USER_ID");
-  const livePeriod = env("COMMUNIO_LIVE_PERIOD");
-  const liveStandingsUrl = env("COMMUNIO_LIVE_STANDINGS_URL")
-    || (communityId && livePeriod ? `${apiBase}/communities/${communityId}/standings?period=${encodeURIComponent(livePeriod)}&wpe=true` : "");
+  const livePeriods = splitEnvList(env("COMMUNIO_LIVE_PERIODS"), env("COMMUNIO_LIVE_PERIOD") ? [env("COMMUNIO_LIVE_PERIOD")] : []);
+  const liveStandingsUrls = splitEnvList(env("COMMUNIO_LIVE_STANDINGS_URL"))
+    .concat(
+      communityId
+        ? livePeriods.map((period) => `${apiBase}/communities/${communityId}/standings?period=${encodeURIComponent(period)}&wpe=true`)
+        : []
+    );
   const configuredFetchUrls = [
     env("COMMUNIO_API_FETCH_URLS"),
     env("COMMUNIO_FETCH_URLS"),
     env("COMMUNIO_STANDINGS_TOTAL_URL"),
     env("COMMUNIO_STANDINGS_URL"),
-    liveStandingsUrl,
+    liveStandingsUrls.join(","),
     env("COMMUNIO_MEMBERS_URL"),
     env("COMMUNIO_STATE_URL")
   ].filter(Boolean).join(",");
