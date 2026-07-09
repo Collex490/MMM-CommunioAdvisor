@@ -167,10 +167,10 @@
 
 .communio-advisor__live-player {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  min-height: 54px;
+  min-height: 60px;
   padding: 6px 8px;
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -181,12 +181,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   object-fit: cover;
   color: #141414;
   background: var(--advisor-gold);
+  border: 2px solid rgba(224, 177, 63, 0.95);
   border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
   font-size: 14px;
   font-weight: 800;
 }
@@ -252,6 +254,21 @@
   color: var(--advisor-text);
   font-size: 19px;
   line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.communio-advisor__status-item strong.communio-advisor__status-multi {
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.communio-advisor__status-multi span {
+  display: block;
+  overflow: hidden;
+  color: var(--advisor-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

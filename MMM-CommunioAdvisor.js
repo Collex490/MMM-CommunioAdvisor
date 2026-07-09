@@ -301,12 +301,12 @@ Module.register("MMM-CommunioAdvisor", {
     });
     const budget = data.budgetStatus || {};
     const ownTotalPoints = ownTeam?.totalPoints ?? ownTeam?.points;
-    const focus = this.getMatchdayStatus(data) || this.getFocusStatus(data);
+    const gapStatus = this.getGapStatus(data.standings || [], ownTeam);
     const items = [
       ["Budget", this.formatCurrencyText(budget.amount || budget.label || "offen")],
       ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
       ["Punkte", ownTotalPoints != null ? `${ownTotalPoints} P` : "-"],
-      [focus.label, focus.value]
+      [gapStatus.label, gapStatus.value]
     ];
 
     items.forEach(([label, value]) => {
@@ -317,7 +317,16 @@ Module.register("MMM-CommunioAdvisor", {
       itemLabel.textContent = label;
 
       const itemValue = document.createElement("strong");
-      itemValue.textContent = value;
+      if (Array.isArray(value)) {
+        itemValue.className = "communio-advisor__status-multi";
+        value.forEach((line) => {
+          const lineNode = document.createElement("span");
+          lineNode.textContent = line;
+          itemValue.appendChild(lineNode);
+        });
+      } else {
+        itemValue.textContent = value;
+      }
 
       item.appendChild(itemLabel);
       item.appendChild(itemValue);
@@ -325,6 +334,60 @@ Module.register("MMM-CommunioAdvisor", {
     });
 
     return strip;
+  },
+
+  getGapStatus(standings, ownTeam) {
+    if (!ownTeam) {
+      return { label: "Tabellenlage", value: "-" };
+    }
+
+    const ownPoints = ownTeam.totalPoints ?? ownTeam.points;
+    const ownRank = Number(ownTeam.rank);
+    if (ownPoints == null || !Number.isFinite(ownRank)) {
+      return { label: "Tabellenlage", value: "-" };
+    }
+
+    const sorted = [...standings]
+      .filter((team) => team && Number.isFinite(Number(team.rank)))
+      .sort((a, b) => Number(a.rank) - Number(b.rank));
+    const leader = sorted.find((team) => Number(team.rank) === 1);
+    const leaderPoints = leader?.totalPoints ?? leader?.points;
+
+    if (ownRank === 1) {
+      const chaser = sorted.find((team) => Number(team.rank) === 2);
+      const chaserPoints = chaser?.totalPoints ?? chaser?.points;
+      if (chaserPoints == null) {
+        return { label: "Vorsprung", value: "Spitze" };
+      }
+
+      const gap = Math.max(0, Number(ownPoints) - Number(chaserPoints));
+      return {
+        label: "Vorsprung",
+        value: gap > 0 ? `${gap} P auf Platz 2` : "Spitze"
+      };
+    }
+
+    const target = sorted.find((team) => Number(team.rank) === ownRank - 1);
+    const targetPoints = target?.totalPoints ?? target?.points;
+    const chaser = sorted.find((team) => Number(team.rank) === ownRank + 1);
+    const chaserPoints = chaser?.totalPoints ?? chaser?.points;
+
+    if (targetPoints == null) {
+      return { label: "Tabellenlage", value: "-" };
+    }
+
+    const leaderGap = leaderPoints == null ? null : Math.max(0, Number(leaderPoints) - Number(ownPoints));
+    const frontGap = Math.max(0, Number(targetPoints) - Number(ownPoints));
+    const rearGap = chaserPoints == null ? null : Math.max(0, Number(ownPoints) - Number(chaserPoints));
+    const rearText = rearGap == null ? "hinten frei" : `+${rearGap} P nach hinten`;
+
+    return {
+      label: "Tabellenlage",
+      value: [
+        leaderGap == null ? "Spitze: -" : `Spitze: ${leaderGap} P`,
+        `Vorn: ${frontGap} P · ${rearText}`
+      ]
+    };
   },
 
   buildLivePlayers(data) {
