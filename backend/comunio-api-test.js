@@ -78,7 +78,9 @@ function tokenFromPayload(payload) {
 }
 
 function loginPayloadVariants(username, password) {
+  const tzoffset = Number(env("COMMUNIO_TZOFFSET", "2"));
   return [
+    { username, password, tzoffset },
     { username, password },
     { login: username, password },
     { email: username, password },
