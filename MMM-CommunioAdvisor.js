@@ -330,7 +330,7 @@ Module.register("MMM-CommunioAdvisor", {
   buildLivePlayers(data) {
     const sourcePlayers = data.livePlayers || data.livePoints || [];
     const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
-      .filter((player) => player && (player.livePoints !== undefined || player.points !== undefined || player.status))
+      .filter((player) => player && (player.livePoints !== undefined || player.status))
       .slice(0, 6);
     const fallbackPlayers = (Array.isArray(data.squadPlayers) ? data.squadPlayers : [])
       .filter((player) => player && player.name)
@@ -338,8 +338,7 @@ Module.register("MMM-CommunioAdvisor", {
       .slice(0, 6)
       .map((player) => ({
         ...player,
-        status: player.status || "Kader",
-        livePoints: player.livePoints ?? player.points
+        status: player.status || "Saisonpunkte"
       }));
     const players = livePlayers.length ? livePlayers : fallbackPlayers;
     const isLive = livePlayers.length > 0;
@@ -356,7 +355,7 @@ Module.register("MMM-CommunioAdvisor", {
 
     const title = document.createElement("div");
     title.className = "communio-advisor__card-label";
-    title.textContent = "Live-Punkte";
+    title.textContent = isLive ? "Live-Punkte" : "Kader-Vorschau";
 
     const state = document.createElement("div");
     state.className = "communio-advisor__live-state";
@@ -398,7 +397,7 @@ Module.register("MMM-CommunioAdvisor", {
 
       const points = document.createElement("div");
       points.className = "communio-advisor__live-points";
-      const value = player.livePoints ?? player.points ?? "-";
+      const value = isLive ? player.livePoints ?? "-" : player.points ?? "-";
       points.textContent = `${value} P`;
 
       item.appendChild(photo);
@@ -496,7 +495,8 @@ Module.register("MMM-CommunioAdvisor", {
   getNextMatchday(data) {
     const configuredMatchdays = Array.isArray(this.config.matchdays) ? this.config.matchdays : [];
     const dataMatchdays = Array.isArray(data.matchdays) ? data.matchdays : [];
-    const matchdays = [...dataMatchdays, ...configuredMatchdays]
+    const sourceMatchdays = configuredMatchdays.length ? configuredMatchdays : dataMatchdays;
+    const matchdays = sourceMatchdays
       .filter((matchday) => matchday && (matchday.at || matchday.date))
       .sort((a, b) => new Date(a.at || a.date).getTime() - new Date(b.at || b.date).getTime());
 
