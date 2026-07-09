@@ -35,6 +35,9 @@ const defaultProbeUrls = [
   "https://classic.comunio.de/webservice.php?wsdl"
 ];
 
+const endpointPattern = /(?:"|')((?:https?:\/\/[^"']+|\/[^"']*)(?:api|auth|login|session|token|graphql|user|market|standings|transfers|lineup|team|squad)[^"']*)(?:"|')/gi;
+const scriptPattern = /<script[^>]+src=["']([^"']+\.js(?:\?[^"']*)?)["']/gi;
+
 function splitEnvList(value, fallback = []) {
   return String(value || "")
     .split(",")
@@ -51,21 +54,63 @@ function cookieHeader(cookies) {
     .join("; ");
 }
 
-function sanitizeSnippet(text) {
+function sanitizeSnippet(text, limit = 1200) {
   return String(text || "")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 1200);
+    .slice(0, limit);
+}
+
+function absoluteUrl(baseUrl, value) {
+  try {
+    return new URL(value, baseUrl).toString();
+  } catch {
+    return value;
+  }
+}
+
+function unique(values) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function extractScripts(html, baseUrl) {
+  const scripts = [];
+  let match;
+
+  while ((match = scriptPattern.exec(html))) {
+    scripts.push(absoluteUrl(baseUrl, match[1]));
+  }
+
+  return unique(scripts);
+}
+
+function extractEndpoints(text) {
+  const endpoints = [];
+  let match;
+
+  while ((match = endpointPattern.exec(text))) {
+    endpoints.push(match[1].replace(/\\u002F/g, "/"));
+  }
+
+  return unique(endpoints)
+    .filter((endpoint) => !endpoint.includes("_next/static"))
+    .slice(0, 300);
 }
 
 async function fetchText(url, options = {}) {
+  const snippetLimit = options.snippetLimit || 1200;
+  const includeText = Boolean(options.includeText);
+  const fetchOptions = { ...options };
+  delete fetchOptions.snippetLimit;
+  delete fetchOptions.includeText;
+
   const response = await fetch(url, {
     redirect: "manual",
-    ...options,
+    ...fetchOptions,
     headers: {
       "user-agent": "MMM-CommunioAdvisor/0.1 test adapter",
       accept: "text/html,application/json,application/xml;q=0.9,*/*;q=0.8",
-      ...(options.headers || {})
+      ...(fetchOptions.headers || {})
     }
   });
 
@@ -81,7 +126,8 @@ async function fetchText(url, options = {}) {
     location: response.headers.get("location") || "",
     contentType: response.headers.get("content-type") || "",
     setCookie,
-    snippet: sanitizeSnippet(text)
+    snippet: sanitizeSnippet(text, snippetLimit),
+    text: includeText ? text : undefined
   };
 }
 
@@ -118,6 +164,54 @@ async function probe() {
   results.forEach((result) => {
     console.log(`${result.status || "ERR"} ${result.url} ${result.contentType || result.error || ""}`);
   });
+}
+
+async function discover() {
+  const startUrl = env("COMMUNIO_DISCOVER_URL", "https://www.comunio.de/wm");
+  const page = await fetchText(startUrl, { includeText: true, snippetLimit: 5000 });
+  const pageText = page.text || page.snippet || "";
+  const scripts = extractScripts(pageText, startUrl);
+  const endpoints = extractEndpoints(pageText);
+  const scriptResults = [];
+
+  for (const scriptUrl of scripts.slice(0, 40)) {
+    try {
+      const script = await fetchText(scriptUrl, { includeText: true, snippetLimit: 2000 });
+      const foundEndpoints = extractEndpoints(script.text || script.snippet);
+      scriptResults.push({
+        url: scriptUrl,
+        status: script.status,
+        contentType: script.contentType,
+        endpoints: foundEndpoints
+      });
+      endpoints.push(...foundEndpoints);
+    } catch (error) {
+      scriptResults.push({
+        url: scriptUrl,
+        error: error.message,
+        endpoints: []
+      });
+    }
+  }
+
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    startUrl,
+    page: {
+      status: page.status,
+      contentType: page.contentType,
+      scriptsFound: scripts.length
+    },
+    scripts,
+    endpoints: unique(endpoints),
+    scriptResults
+  };
+
+  const targetPath = await writeJson("comunio-discovery.json", payload);
+  console.log(`Discovery gespeichert: ${targetPath}`);
+  console.log(`Scripts gefunden: ${scripts.length}`);
+  console.log(`Moegliche Endpunkte gefunden: ${payload.endpoints.length}`);
+  payload.endpoints.slice(0, 40).forEach((endpoint) => console.log(endpoint));
 }
 
 async function loginAndFetch() {
@@ -211,12 +305,17 @@ async function main() {
     return;
   }
 
+  if (command === "discover") {
+    await discover();
+    return;
+  }
+
   if (command === "login") {
     await loginAndFetch();
     return;
   }
 
-  throw new Error(`Unbekannter Befehl: ${command}. Nutze probe oder login.`);
+  throw new Error(`Unbekannter Befehl: ${command}. Nutze probe, discover, env-check oder login.`);
 }
 
 main().catch((error) => {
