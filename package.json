@@ -6,9 +6,9 @@
   "scripts": {
     "backend": "node backend/server.js",
     "telegram": "node backend/telegram-bot.js",
-    "communio:probe": "node backend/comunio-api-test.js probe",
-    "communio:login": "node backend/comunio-api-test.js login",
-    "communio:analyze": "node backend/comunio-analyze-data.js"
+    "communio:probe": "node -r dotenv/config backend/comunio-api-test.js probe",
+    "communio:login": "node -r dotenv/config backend/comunio-api-test.js login",
+    "communio:analyze": "node -r dotenv/config backend/comunio-analyze-data.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

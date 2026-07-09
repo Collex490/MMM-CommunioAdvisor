@@ -1,7 +1,9 @@
-require("dotenv").config();
-
 const fs = require("fs/promises");
 const path = require("path");
+
+require("dotenv").config({
+  path: path.join(__dirname, "..", ".env")
+});
 
 const dataDir = process.env.COMMUNIO_ADVISOR_TEST_DATA_DIR
   || path.join(__dirname, "..", "data");

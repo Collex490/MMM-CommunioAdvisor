@@ -1,10 +1,12 @@
-require("dotenv").config();
-
 const fs = require("fs/promises");
 const path = require("path");
 const OpenAI = require("openai");
 const { normalizeAnalysis } = require("./normalize-analysis");
 const { mergeWithExisting } = require("./merge-analysis");
+
+require("dotenv").config({
+  path: path.join(__dirname, "..", ".env")
+});
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
