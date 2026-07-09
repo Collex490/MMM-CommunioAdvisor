@@ -1040,7 +1040,6 @@ function buildAnalysis(raw, generatedLineupImage) {
   const lineup = pageByUrl(raw, "/lineup");
   const squad = pageByUrl(raw, "/squad");
   const offers = pageByUrl(raw, "/offers?current");
-  const matchdays = pageByUrl(raw, "/matchdays");
   const news = raw.pages
     .filter((page) => page.status === 200 && page.url.includes("/news"))
     .map((page) => page.json);
@@ -1137,7 +1136,7 @@ function buildAnalysis(raw, generatedLineupImage) {
       sell: squadPlayers.slice(-2).map((player) => `${player.name} als moeglichen Tausch-/Verkaufskandidaten pruefen`),
       watch: marketCandidates.slice(0, 2).map((item) => `${item.player} auf dem Markt beobachten`)
     },
-    matchdays: mapMatchdays(matchdays),
+    matchdays: [],
     rumorKitchen: {
       headline: "Pasta La Vista FC zapft die Comunio-Leitung an",
       body: `Patron Co sieht ${ownTeam?.totalPoints || "neue"} Punkte im Datenraum, waehrend Gattuso Transfermarkt und Kaderliste enger zusammenrueckt.`
