@@ -77,6 +77,22 @@ function tokenFromPayload(payload) {
     || "";
 }
 
+function loginPayloadVariants(username, password) {
+  return [
+    { username, password },
+    { login: username, password },
+    { email: username, password },
+    { name: username, password },
+    { userName: username, password },
+    { identifier: username, password },
+    { username, pass: password },
+    { login: username, pass: password },
+    { email: username, pass: password },
+    { username, pwd: password },
+    { login: username, pwd: password }
+  ];
+}
+
 function sanitizeSnippet(text, limit = 1200) {
   return String(text || "")
     .replace(/\s+/g, " ")
@@ -394,20 +410,42 @@ async function apiLoginAndFetch() {
     headers: commonHeaders
   });
 
-  const loginPayload = {
-    username,
-    password
-  };
+  const loginAttempts = [];
+  let loginResult = null;
+  let loginPayloadShape = "";
 
-  const loginResult = await fetchJsonAware(loginUrl, {
-    method: "POST",
-    redirect: "manual",
-    body: JSON.stringify(loginPayload),
-    headers: {
-      ...commonHeaders,
-      "content-type": "application/json"
+  for (const candidate of loginPayloadVariants(username, password)) {
+    const shape = Object.keys(candidate).join("+");
+    const result = await fetchJsonAware(loginUrl, {
+      method: "POST",
+      redirect: "manual",
+      body: JSON.stringify(candidate),
+      headers: {
+        ...commonHeaders,
+        "content-type": "application/json"
+      }
+    });
+
+    loginAttempts.push({
+      shape,
+      status: result.status,
+      contentType: result.contentType,
+      cookiesReceived: (result.setCookie || []).length,
+      tokenReceived: Boolean(tokenFromPayload(result.json)),
+      snippet: result.snippet
+    });
+
+    if (!loginResult || (result.status !== 400 && result.status !== 422)) {
+      loginResult = result;
+      loginPayloadShape = shape;
     }
-  });
+
+    if (result.status >= 200 && result.status < 300) {
+      loginResult = result;
+      loginPayloadShape = shape;
+      break;
+    }
+  }
 
   const cookies = loginResult.setCookie || [];
   const token = tokenFromPayload(loginResult.json);
@@ -464,8 +502,10 @@ async function apiLoginAndFetch() {
       contentType: loginResult.contentType,
       cookiesReceived: cookies.length,
       tokenReceived: Boolean(token),
+      payloadShape: loginPayloadShape,
       snippet: loginResult.snippet
     },
+    loginAttempts,
     afterState: {
       url: stateUrl,
       status: afterState.status,
@@ -485,7 +525,7 @@ async function apiLoginAndFetch() {
   const targetPath = await writeJson("comunio-api-login-test.json", payload);
   console.log(`API-Login-Test gespeichert: ${targetPath}`);
   console.log(`State vorher: ${beforeState.status}`);
-  console.log(`Login Status: ${loginResult.status}, Cookies: ${cookies.length}, Token: ${token ? "ja" : "nein"}`);
+  console.log(`Login Status: ${loginResult.status}, Cookies: ${cookies.length}, Token: ${token ? "ja" : "nein"}, Payload: ${loginPayloadShape}`);
   console.log(`State danach: ${afterState.status}`);
   pages.forEach((page) => console.log(`${page.status || "ERR"} ${page.url} ${page.contentType || page.error || ""}`));
 }
