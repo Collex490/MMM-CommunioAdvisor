@@ -657,7 +657,40 @@ function lineupPlayersFromRaw(raw) {
     .slice(0, 11);
 }
 
-function coordinatesForLineup(players) {
+function ownTacticFromRaw(raw) {
+  const userId = env("COMMUNIO_USER_ID");
+  const standingsPages = pagesByUrl(raw, "standings");
+  let tactic = "";
+
+  standingsPages.forEach((json) => {
+    if (tactic) return;
+    collectArrays(json).forEach((items) => {
+      if (tactic) return;
+      items.forEach((item) => {
+        const embeddedUser = item?._embedded?.user;
+        const isOwnUser = String(embeddedUser?.id || "") === String(userId)
+          || normalizeText(embeddedUser?.name) === "pasta la vista fc";
+        if (isOwnUser) tactic = String(item?._embedded?.teamInfo?.tactic || "");
+      });
+    });
+  });
+
+  return tactic || String(deepFirstValueByKeys(pageByUrl(raw, "/lineup"), ["tactic", "formation"]) || "343");
+}
+
+function tacticRows(tactic) {
+  const digits = String(tactic || "")
+    .replace(/[^\d]/g, "")
+    .split("")
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item) && item > 0);
+
+  const [defenders = 3, midfielders = 4, strikers = 3] = digits;
+  return { goalkeeper: 1, defender: defenders, midfielder: midfielders, striker: strikers };
+}
+
+function coordinatesForLineup(players, tactic) {
+  const rowCounts = tacticRows(tactic);
   const rows = {
     goalkeeper: players.filter((player) => positionGroup(player.position) === "goalkeeper"),
     defender: players.filter((player) => positionGroup(player.position) === "defender"),
@@ -669,31 +702,99 @@ function coordinatesForLineup(players) {
     rows.goalkeeper = [players[0]];
   }
 
-  const placed = new Set(rows.goalkeeper.map((player) => player.name));
+  const placed = new Set();
+  rows.goalkeeper.forEach((player) => placed.add(player.name));
   rows.defender = rows.defender.filter((player) => !placed.has(player.name));
   rows.midfielder = rows.midfielder.filter((player) => !placed.has(player.name));
   rows.striker = rows.striker.filter((player) => !placed.has(player.name));
 
-  const distribute = (items, y) => {
-    const count = Math.max(items.length, 1);
-    return items.map((player, index) => ({
-      player,
-      x: 120 + ((560 / (count + 1)) * (index + 1)),
-      y
-    }));
+  const used = new Set();
+  const rowSlots = (items, count, y, label) => {
+    const width = 610;
+    const slots = [];
+    for (let index = 0; index < count; index += 1) {
+      const player = items.find((candidate) => !used.has(candidate.name));
+      if (player) used.add(player.name);
+      slots.push({
+        player: player || null,
+        label,
+        x: 55 + ((width / (count + 1)) * (index + 1)),
+        y
+      });
+    }
+    return slots;
   };
 
-  return [
-    ...distribute(rows.striker, 145),
-    ...distribute(rows.midfielder, 285),
-    ...distribute(rows.defender, 420),
-    ...distribute(rows.goalkeeper, 545)
+  const slots = [
+    ...rowSlots(rows.striker, rowCounts.striker, 92, "ST"),
+    ...rowSlots(rows.midfielder, rowCounts.midfielder, 205, "MF"),
+    ...rowSlots(rows.defender, rowCounts.defender, 318, "DF"),
+    ...rowSlots(rows.goalkeeper, rowCounts.goalkeeper, 424, "TW")
   ];
+
+  const overflow = players.filter((player) => !used.has(player.name));
+  overflow.forEach((player, index) => {
+    const target = slots.find((slot) => !slot.player) || slots[index % slots.length];
+    if (target && !target.player) target.player = player;
+  });
+
+  return slots;
+}
+
+function missingLineupLabels(slots) {
+  return slots
+    .filter((slot) => !slot.player)
+    .map((slot) => slot.label);
+}
+
+function buildLineupSlot({ player, x, y, label }, index, photoCache) {
+  const clipId = `playerPhoto${index}`;
+
+  if (!player) {
+    return `
+      <g transform="translate(${Math.round(x - 33)}, ${Math.round(y - 39)})">
+        <rect x="0" y="0" width="66" height="78" rx="10" fill="#1d4e2c" stroke="#d9b24c" stroke-width="2" stroke-dasharray="5 4" opacity="0.9"/>
+        <circle cx="33" cy="27" r="16" fill="#285f37" stroke="#d9b24c" stroke-width="2"/>
+        <text x="33" y="33" text-anchor="middle" font-size="22" fill="#d9b24c" font-weight="900">+</text>
+        <text x="33" y="58" text-anchor="middle" font-size="13" fill="#f0d891" font-weight="900">${label}</text>
+      </g>`;
+  }
+
+  const photo = photoCache.get(player.name);
+  const initials = player.name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return `
+    <g transform="translate(${Math.round(x - 35)}, ${Math.round(y - 45)})">
+      <rect x="0" y="0" width="70" height="90" rx="10" fill="#17345a" stroke="#e0b13f" stroke-width="2"/>
+      <clipPath id="${clipId}"><rect x="8" y="7" width="54" height="48" rx="8"/></clipPath>
+      ${photo
+        ? `<image href="${photo}" x="8" y="7" width="54" height="48" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>`
+        : `<rect x="8" y="7" width="54" height="48" rx="8" fill="#243447"/><text x="35" y="37" text-anchor="middle" font-size="18" fill="#e0b13f" font-weight="800">${escapeXml(initials)}</text>`}
+      <rect x="6" y="59" width="58" height="24" rx="6" fill="#10243f"/>
+      <text x="35" y="70" text-anchor="middle" font-size="8" fill="#ffffff" font-weight="800">${escapeXml(player.name).slice(0, 15)}</text>
+      <text x="35" y="80" text-anchor="middle" font-size="7" fill="#d6d6d6">${label}</text>
+      ${player.points !== undefined ? `<circle cx="62" cy="10" r="10" fill="#ffffff"/><text x="62" y="14" text-anchor="middle" font-size="9" fill="#2ba84a" font-weight="900">${player.points}</text>` : ""}
+    </g>`;
+}
+
+function buildMiniBench(players, usedNames) {
+  return players
+    .filter((player) => !usedNames.has(player.name))
+    .slice(0, 4)
+    .map((player, index) => `
+      <text x="735" y="${352 + index * 22}" fill="#f5f5f5" font-size="13" font-weight="700">${escapeXml(player.name).slice(0, 20)}</text>`)
+    .join("");
 }
 
 async function renderGeneratedLineup(raw, token) {
   const players = lineupPlayersFromRaw(raw);
   if (!players.length) return null;
+  const tactic = ownTacticFromRaw(raw);
 
   const photoCache = new Map();
   for (const player of players) {
@@ -706,61 +807,50 @@ async function renderGeneratedLineup(raw, token) {
     }
   }
 
-  const placed = coordinatesForLineup(players);
-  const cards = placed.map(({ player, x, y }, index) => {
-    const photo = photoCache.get(player.name);
-    const clipId = `playerPhoto${index}`;
-    const initials = player.name
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
-    return `
-      <g transform="translate(${Math.round(x - 42)}, ${Math.round(y - 54)})">
-        <rect x="0" y="0" width="84" height="108" rx="10" fill="#17345a" stroke="#e0b13f" stroke-width="2"/>
-        <clipPath id="${clipId}"><rect x="9" y="8" width="66" height="58" rx="8"/></clipPath>
-        ${photo
-          ? `<image href="${photo}" x="9" y="8" width="66" height="58" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>`
-          : `<rect x="9" y="8" width="66" height="58" rx="8" fill="#243447"/><text x="42" y="45" text-anchor="middle" font-size="20" fill="#e0b13f" font-weight="800">${escapeXml(initials)}</text>`}
-        <rect x="8" y="70" width="68" height="28" rx="6" fill="#10243f"/>
-        <text x="42" y="82" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="800">${escapeXml(player.name).slice(0, 16)}</text>
-        <text x="42" y="94" text-anchor="middle" font-size="8" fill="#d6d6d6">${escapeXml(player.position || "Spieler")}</text>
-        ${player.points !== undefined ? `<circle cx="72" cy="14" r="11" fill="#ffffff"/><text x="72" y="18" text-anchor="middle" font-size="10" fill="#2ba84a" font-weight="900">${player.points}</text>` : ""}
-      </g>`;
-  }).join("");
+  const placed = coordinatesForLineup(players, tactic);
+  const cards = placed.map((slot, index) => buildLineupSlot(slot, index, photoCache)).join("");
+  const usedNames = new Set(placed.filter((slot) => slot.player).map((slot) => slot.player.name));
+  const missing = missingLineupLabels(placed);
+  const missingText = missing.length ? missing.join(", ") : "komplett";
+  const miniBench = buildMiniBench(players, usedNames);
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="620" viewBox="0 0 800 620">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
   <defs>
-    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2f7f38"/>
-      <stop offset="1" stop-color="#1f5f2c"/>
-    </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#000000" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <rect width="800" height="620" rx="22" fill="#111"/>
-  <g transform="translate(45, 38)" filter="url(#shadow)">
-    <rect width="710" height="540" rx="18" fill="url(#grass)" stroke="#e0b13f" stroke-width="3"/>
-    <g stroke="#dbe8d4" stroke-width="3" fill="none" opacity="0.7">
-      <rect x="34" y="28" width="642" height="484"/>
-      <line x1="34" y1="270" x2="676" y2="270"/>
-      <circle cx="355" cy="270" r="62"/>
-      <rect x="221" y="28" width="268" height="76"/>
-      <rect x="221" y="436" width="268" height="76"/>
-      <rect x="283" y="28" width="144" height="35"/>
-      <rect x="283" y="477" width="144" height="35"/>
+  <rect width="960" height="540" rx="22" fill="#101713"/>
+  <g transform="translate(24, 24)" filter="url(#shadow)">
+    <rect width="682" height="492" rx="18" fill="#2f8a43" stroke="#e0b13f" stroke-width="3"/>
+    <g opacity="0.12">
+      ${Array.from({ length: 9 }, (_, index) => `<rect x="${index * 76}" y="0" width="38" height="492" fill="#ffffff"/>`).join("")}
     </g>
-    <g opacity="0.16">
-      ${Array.from({ length: 9 }, (_, index) => `<rect x="${34 + index * 72}" y="28" width="36" height="484" fill="#ffffff"/>`).join("")}
+    <g stroke="#e3f3df" stroke-width="3" fill="none" opacity="0.78">
+      <rect x="30" y="28" width="622" height="436"/>
+      <line x1="30" y1="246" x2="652" y2="246"/>
+      <circle cx="341" cy="246" r="58"/>
+      <rect x="214" y="28" width="254" height="74"/>
+      <rect x="214" y="390" width="254" height="74"/>
+      <rect x="278" y="28" width="126" height="34"/>
+      <rect x="278" y="430" width="126" height="34"/>
     </g>
     ${cards}
   </g>
-  <text x="400" y="28" text-anchor="middle" fill="#e0b13f" font-size="18" font-weight="900" letter-spacing="1">Pasta La Vista FC - Automatische Aufstellung</text>
-  <text x="400" y="604" text-anchor="middle" fill="#d6d6d6" font-size="13">Generiert aus Comunio API - ${escapeXml(new Date().toLocaleString("de-DE"))}</text>
+  <g transform="translate(730, 44)">
+    <rect width="206" height="452" rx="18" fill="#171717" stroke="#4a3a18" stroke-width="2"/>
+    <text x="103" y="38" text-anchor="middle" fill="#e0b13f" font-size="16" font-weight="900">Formation</text>
+    <text x="103" y="92" text-anchor="middle" fill="#ffffff" font-size="44" font-weight="900">${escapeXml(String(tactic).replace(/(\d)(?=\d)/g, "$1-"))}</text>
+    <text x="103" y="126" text-anchor="middle" fill="#bdbdbd" font-size="13">aus Comunio API</text>
+    <line x1="24" y1="154" x2="182" y2="154" stroke="#4a3a18"/>
+    <text x="24" y="194" fill="#e0b13f" font-size="14" font-weight="900">Offene Slots</text>
+    <text x="24" y="220" fill="#ffffff" font-size="18" font-weight="900">${escapeXml(missingText)}</text>
+    <text x="24" y="268" fill="#e0b13f" font-size="14" font-weight="900">Kaderbank</text>
+    ${miniBench || `<text x="24" y="300" fill="#f5f5f5" font-size="13" font-weight="700">keine extra Spieler</text>`}
+  </g>
+  <text x="365" y="18" text-anchor="middle" fill="#e0b13f" font-size="16" font-weight="900" letter-spacing="1">Pasta La Vista FC - Automatische Aufstellung</text>
+  <text x="365" y="532" text-anchor="middle" fill="#d6d6d6" font-size="12">Generiert aus Comunio API - ${escapeXml(new Date().toLocaleString("de-DE"))}</text>
 </svg>`;
 
   await fs.mkdir(uploadDir, { recursive: true });
