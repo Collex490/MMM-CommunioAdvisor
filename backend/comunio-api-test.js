@@ -122,6 +122,15 @@ function loginPayloadVariants(username, password) {
   ];
 }
 
+function compactUrlList(urls) {
+  return unique(urls)
+    .filter((url) => !url.includes("//squad"))
+    .filter((url) => !url.includes("//standings"))
+    .filter((url) => !url.includes("//users//"))
+    .filter((url) => !url.includes("undefined"))
+    .filter((url) => !url.includes("null"));
+}
+
 function sanitizeSnippet(text, limit = 1200) {
   return String(text || "")
     .replace(/\s+/g, " ")
@@ -491,17 +500,31 @@ async function apiLoginAndFetch() {
   const userId = env("COMMUNIO_USER_ID")
     || findFirstKeyDeep(afterState.json, ["userId", "user_id", "authenticatedUserId", "ownerId"]);
 
-  const defaultApiUrls = [
+  const defaultApiUrls = compactUrlList([
     `${apiBase}/login/state`,
-    `${apiBase}/users/${userId}/squad`,
-    `${apiBase}/users/${userId}/squad?eid=${communityId}`,
-    `${apiBase}/communities/${communityId}/standings`,
-    `${apiBase}/communities/${communityId}/users/${userId}/offers`,
+    `${apiBase}/users/`,
+    `${apiBase}/users/me`,
+    `${apiBase}/user`,
+    `${apiBase}/me`,
+    `${apiBase}/account`,
+    `${apiBase}/profile`,
+    `${apiBase}/communities`,
+    `${apiBase}/community`,
+    `${apiBase}/news`,
+    `${apiBase}/game/news`,
     `${apiBase}/market`,
     `${apiBase}/game/market`,
+    `${apiBase}/transfers`,
+    `${apiBase}/standings`,
+    `${apiBase}/lineup`,
+    `${apiBase}/game/info/user`,
     `${apiBase}/game/info/user/`,
-    `${apiBase}/lineup`
-  ];
+    `${apiBase}/game/info/user/statement`,
+    userId ? `${apiBase}/users/${userId}/squad` : "",
+    userId && communityId ? `${apiBase}/users/${userId}/squad?eid=${communityId}` : "",
+    communityId ? `${apiBase}/communities/${communityId}/standings` : "",
+    communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/offers` : ""
+  ]);
   const apiUrls = splitEnvList(env("COMMUNIO_API_FETCH_URLS"), defaultApiUrls);
   const pages = [];
 
@@ -566,6 +589,11 @@ async function apiLoginAndFetch() {
   console.log(`Login Status: ${loginResult.status}, Cookies: ${cookies.length}, Token: ${token ? "ja" : "nein"}, Payload: ${loginPayloadShape}`);
   console.log(`State danach: ${afterState.status}, Community: ${communityId || "unbekannt"}, User: ${userId || "unbekannt"}`);
   pages.forEach((page) => console.log(`${page.status || "ERR"} ${page.url} ${page.contentType || page.error || ""}`));
+  const hits = pages.filter((page) => page.status && page.status !== 404);
+  if (hits.length) {
+    console.log("Moegliche Treffer:");
+    hits.forEach((page) => console.log(`${page.status} ${page.url}`));
+  }
 }
 
 function checkEnv() {
