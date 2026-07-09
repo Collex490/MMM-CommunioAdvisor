@@ -237,7 +237,7 @@ async function fetchComunioData() {
 }
 
 function pageByUrl(raw, part) {
-  return raw.pages.find((page) => page.url.includes(part) && page.status === 200)?.json;
+  return raw.pages.find((page) => page.url.includes(part) && page.status === 200 && page.json)?.json;
 }
 
 function bestArrayByScore(value, scorer) {
