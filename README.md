@@ -288,6 +288,52 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
 }
 ```
 
+## Optionaler Comunio-Testadapter
+
+Telegram bleibt die stabile Hauptquelle. Der Comunio-Testadapter ist nur ein Labor, um zu pruefen, ob Comunio-Daten per Login/alten Seiten erreichbar sind.
+
+1. `.env` um Comunio-Zugangsdaten ergaenzen:
+
+   ```bash
+   nano .env
+   ```
+
+   Diese Zeilen einfuegen oder anpassen:
+
+   ```env
+   COMMUNIO_USERNAME=dein-login
+   COMMUNIO_PASSWORD=dein-passwort
+   COMMUNIO_LOGIN_URL=https://classic.comunio.de/login.phtml
+   COMMUNIO_USERNAME_FIELD=login
+   COMMUNIO_PASSWORD_FIELD=pass
+   COMMUNIO_FETCH_URLS=https://classic.comunio.de/team.phtml,https://classic.comunio.de/standings.phtml,https://classic.comunio.de/market.phtml,https://classic.comunio.de/transfers.phtml
+   ```
+
+2. Erst nur Erreichbarkeit testen:
+
+   ```bash
+   cd ~/MagicMirror/modules/MMM-CommunioAdvisor
+   npm run communio:probe
+   ```
+
+   Ergebnis landet in `data/comunio-api-probe.json`.
+
+3. Login und Seitenabruf testen:
+
+   ```bash
+   npm run communio:login
+   ```
+
+   Ergebnis landet in `data/comunio-login-test.json`. Das Passwort wird dort nicht gespeichert.
+
+4. Wenn der Login-Test brauchbare Comunio-Inhalte zeigt, daraus per ChatGPT eine Analyse erzeugen:
+
+   ```bash
+   npm run communio:analyze
+   ```
+
+   Danach wird `data/latest.json` wie bei Telegram aktualisiert. Wenn der Login-Test nur Login- oder Fehlerseiten liefert, diesen Schritt noch nicht nutzen.
+
 ## Naechste Ausbaustufen
 
 - Screenshot-Typ sicherer klassifizieren: Kader, Transfermarkt, Budget, Aufstellung
@@ -295,4 +341,4 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
 - Mehrere Screenshots zu einer gemeinsamen Analyse zusammenfuehren
 - Historie in `data/history/` speichern
 - Kickbase-spezifische Felder ergaenzen
-- API-Anbindung erst spaeter und getrennt vom MagicMirror-Frontend einbauen
+- Comunio-Testadapter auswerten und nur bei stabilen Ergebnissen in den Regelbetrieb uebernehmen
