@@ -35,8 +35,9 @@ const defaultProbeUrls = [
   "https://classic.comunio.de/webservice.php?wsdl"
 ];
 
-const endpointPattern = /(?:"|')((?:https?:\/\/[^"']+|\/[^"']*)(?:api|auth|login|session|token|graphql|user|market|standings|transfers|lineup|team|squad)[^"']*)(?:"|')/gi;
+const endpointPattern = /(?:"|'|`)((?:https?:\/\/[^"'`]+|\/[^"'`]*)(?:api|auth|login|session|token|graphql|user|market|standings|transfers|lineup|team|squad)[^"'`]*)(?:"|'|`)/gi;
 const scriptPattern = /<script[^>]+src=["']([^"']+\.js(?:\?[^"']*)?)["']/gi;
+const nextAssetPattern = /(?:"|'|`|=)((?:https?:\/\/[^"'`<>\s]+|\/[^"'`<>\s]*)(?:_next\/static|static\/chunks)[^"'`<>\s]+\.js(?:\?[^"'`<>\s]*)?)/gi;
 
 function splitEnvList(value, fallback = []) {
   return String(value || "")
@@ -76,20 +77,35 @@ function unique(values) {
 function extractScripts(html, baseUrl) {
   const scripts = [];
   let match;
+  const text = normalizeText(html);
 
-  while ((match = scriptPattern.exec(html))) {
+  while ((match = scriptPattern.exec(text))) {
+    scripts.push(absoluteUrl(baseUrl, match[1]));
+  }
+
+  while ((match = nextAssetPattern.exec(text))) {
     scripts.push(absoluteUrl(baseUrl, match[1]));
   }
 
   return unique(scripts);
 }
 
+function normalizeText(text) {
+  return String(text || "")
+    .replace(/\\u002F/g, "/")
+    .replace(/\\\//g, "/")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
 function extractEndpoints(text) {
   const endpoints = [];
   let match;
+  const normalized = normalizeText(text);
 
-  while ((match = endpointPattern.exec(text))) {
-    endpoints.push(match[1].replace(/\\u002F/g, "/"));
+  while ((match = endpointPattern.exec(normalized))) {
+    endpoints.push(match[1]);
   }
 
   return unique(endpoints)
