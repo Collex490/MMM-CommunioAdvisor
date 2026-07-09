@@ -395,14 +395,15 @@ Module.register("MMM-CommunioAdvisor", {
         info.appendChild(meta);
       }
 
-      const points = document.createElement("div");
-      points.className = "communio-advisor__live-points";
-      const value = isLive ? player.livePoints ?? "-" : player.points ?? "-";
-      points.textContent = `${value} P`;
-
       item.appendChild(photo);
       item.appendChild(info);
-      item.appendChild(points);
+      if (isLive) {
+        const points = document.createElement("div");
+        points.className = "communio-advisor__live-points";
+        const value = player.livePoints ?? "-";
+        points.textContent = `${value} P`;
+        item.appendChild(points);
+      }
       list.appendChild(item);
     });
 
