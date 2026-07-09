@@ -147,6 +147,15 @@ function mergeStandings(previousStandings, incomingStandings) {
       return;
     }
 
+    const hasPoints = team.totalPoints !== undefined
+      || team.matchdayPoints !== undefined
+      || team.points !== undefined
+      || team.overallPoints !== undefined;
+
+    if (!hasPoints) {
+      return;
+    }
+
     byTeam.set(key, {
       ...byTeam.get(key),
       ...team

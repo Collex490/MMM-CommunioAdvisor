@@ -192,6 +192,31 @@ function deepFirstValueByKeys(value, keys) {
   return found;
 }
 
+function titleCaseClubName(value) {
+  const normalized = knownClubName(value) || normalizeText(value);
+  if (normalized === "pasta la vista fc") return "Pasta la Vista FC";
+  if (normalized === "sporting bolzackerer") return "Sporting Bolzackerer";
+  if (normalized === "squadra absenta") return "Squadra Absenta";
+  return String(value || "");
+}
+
+function directNumberByKeys(item, keys) {
+  const lower = lowerKeys(item);
+  for (const key of keys) {
+    const parsed = numberish(lower[key]);
+    if (parsed !== undefined) return parsed;
+  }
+  return undefined;
+}
+
+function directValueByKeys(item, keys) {
+  const lower = lowerKeys(item);
+  for (const key of keys) {
+    if (lower[key] !== undefined && lower[key] !== null && lower[key] !== "") return lower[key];
+  }
+  return undefined;
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, {
     ...options,
@@ -312,43 +337,60 @@ function mapStandings(json) {
     if (!item || typeof item !== "object") return 0;
     const keys = lowerKeys(item);
     const clubName = deepKnownClubName(item);
+    const hasStandingsPoints = directNumberByKeys(item, [
+      "points",
+      "totalpoints",
+      "overallpoints",
+      "pointstotal",
+      "score",
+      "matchdaypoints",
+      "lastpoints"
+    ]) !== undefined;
     return [
       objectName(item) || clubName ? 2 : 0,
       clubName ? 4 : 0,
       keys.rank !== undefined || keys.position !== undefined ? 2 : 0,
-      keys.points !== undefined || keys.totalpoints !== undefined || keys.score !== undefined ? 2 : 0,
-      objectMoney(item) || deepFirstValueByKeys(item, ["marketvalue", "teamvalue"]) ? 1 : 0
+      hasStandingsPoints ? 4 : 0,
+      directValueByKeys(item, ["marketvalue", "teamvalue"]) ? 1 : 0
     ].reduce((sum, value) => sum + value, 0);
   });
 
   return items
-    .filter((item) => item && typeof item === "object" && (objectName(item) || deepKnownClubName(item)))
+    .filter((item) => {
+      if (!item || typeof item !== "object") return false;
+      if (!(objectName(item) || deepKnownClubName(item))) return false;
+      return directNumberByKeys(item, [
+        "points",
+        "totalpoints",
+        "overallpoints",
+        "pointstotal",
+        "score",
+        "matchdaypoints",
+        "lastpoints"
+      ]) !== undefined;
+    })
     .map((item, index) => {
       const known = deepKnownClubName(item);
-      const name = objectName(item) || (known ? known.replace(/\b\w/g, (char) => char.toUpperCase()) : "");
+      const name = titleCaseClubName(known || objectName(item));
+      const matchdayPoints = directNumberByKeys(item, [
+        "matchdaypoints",
+        "currentpoints",
+        "daypoints",
+        "lastpoints"
+      ]);
+      const totalPoints = directNumberByKeys(item, [
+        "totalpoints",
+        "overallpoints",
+        "pointstotal",
+        "score",
+        "points"
+      ]);
       return {
-        rank: numberish(firstValue(
-          item.rank,
-          item.position,
-          item.place,
-          deepFirstValueByKeys(item, ["rank", "position", "place"])
-        )) || index + 1,
+        rank: directNumberByKeys(item, ["rank", "position", "place"]) || index + 1,
         name,
-        matchdayPoints: numberish(firstValue(
-          item.matchdayPoints,
-          item.currentPoints,
-          item.dayPoints,
-          item.lastPoints,
-          deepFirstValueByKeys(item, ["matchdaypoints", "currentpoints", "daypoints", "lastpoints", "points"])
-        )),
-        totalPoints: numberish(firstValue(
-          item.totalPoints,
-          item.overallPoints,
-          item.pointsTotal,
-          item.total,
-          deepFirstValueByKeys(item, ["totalpoints", "overallpoints", "pointstotal", "total", "score", "points"])
-        )),
-        marketValue: formatMoney(firstValue(objectMoney(item), deepFirstValueByKeys(item, ["marketvalue", "teamvalue"]))),
+        matchdayPoints: matchdayPoints !== undefined ? matchdayPoints : totalPoints,
+        totalPoints,
+        marketValue: formatMoney(directValueByKeys(item, ["marketvalue", "teamvalue"])),
         isUserClub: normalizeText(name) === "pasta la vista fc"
       };
     })
@@ -357,21 +399,29 @@ function mapStandings(json) {
 }
 
 function mapStandingsFromRaw(raw) {
-  const candidates = [
-    ...pagesByUrl(raw, "/standings"),
-    ...pagesByUrl(raw, "total.json"),
-    ...raw.pages
-      .filter((page) => page.status === 200 && page.json && /Pasta la Vista|Sporting Bolzackerer|Squadra Absenta/i.test(JSON.stringify(page.json)))
-      .map((page) => page.json)
-  ];
+  const candidates = raw.pages
+    .filter((page) => {
+      if (page.status !== 200 || !page.json) return false;
+      if (page.url.includes("/news")) return false;
+      if (page.url.includes("/offers")) return false;
+      if (page.url.includes("/squad")) return false;
+      if (page.url.includes("/lineup")) return false;
+      return page.url.includes("/standings") || page.url.includes("total.json");
+    })
+    .map((page) => page.json);
 
-  return candidates
+  const standings = candidates
     .map((json) => mapStandings(json))
-    .filter((items) => items.length)
+    .filter((items) => items.length >= 2)
     .sort((a, b) => {
       const clubCount = (items) => new Set(items.map((item) => normalizeText(item.name)).filter((name) => knownClubs.includes(name))).size;
-      return clubCount(b) - clubCount(a) || b.length - a.length;
+      const marketCount = (items) => items.filter((item) => item.marketValue).length;
+      const totalPointCount = (items) => items.filter((item) => item.totalPoints !== undefined).length;
+      return clubCount(b) - clubCount(a) || totalPointCount(b) - totalPointCount(a) || marketCount(b) - marketCount(a) || b.length - a.length;
     })[0] || [];
+
+  const validRows = standings.filter((item) => item.totalPoints !== undefined || item.matchdayPoints !== undefined);
+  return validRows.length >= 2 ? standings : [];
 }
 
 function mapPlayers(json) {
