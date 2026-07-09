@@ -15,6 +15,10 @@ function hasUsefulRecommendation(recommendation) {
 
   const blockedPhrases = [
     "noch keine belastbare empfehlung erkannt",
+    "noch keine daten",
+    "sende einen screenshot",
+    "nicht verwertbar",
+    "keine auslesbaren",
     "kein einzelspieler sichtbar",
     "kein spieler sichtbar",
     "keine spieler sichtbar",
@@ -98,7 +102,13 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
         return false;
       }
 
-      const key = [
+      const playerPriceKey = [
+        item.player || "",
+        item.price || ""
+      ].join("|").toLowerCase();
+      const key = playerPriceKey.trim() !== "|"
+        ? playerPriceKey
+        : [
         item.action || "",
         item.player || "",
         item.from || "",

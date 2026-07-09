@@ -121,12 +121,16 @@ function objectName(item) {
   return firstValue(
     item.player?.name,
     item.player?.displayName,
+    item.tradable?.name,
+    item.tradable?.displayName,
     item.user?.name,
     item.owner?.name,
     item.manager?.name,
     item.communityUser?.name,
     item.team?.name,
     item._embedded?.user?.name,
+    item._embedded?.tradable?.name,
+    item._embedded?.player?.name,
     item._embedded?.team?.name,
     item._embedded?.owner?.name,
     ""
@@ -153,6 +157,10 @@ function objectMoney(item) {
     item.amount,
     item.money,
     item.balance,
+    item.tradable?.marketValue,
+    item.tradable?.value,
+    item._embedded?.tradable?.marketValue,
+    item._embedded?.tradable?.value,
     ""
   );
 }
@@ -548,22 +556,24 @@ function mapPlayers(json) {
 function mapOffers(json) {
   const items = bestArrayByScore(json, (item) => {
     if (!item || typeof item !== "object") return 0;
-    return (objectName(item.player || item) ? 3 : 0) + (objectMoney(item) || objectMoney(item.player) ? 2 : 0);
+    const tradable = item.tradable || item._embedded?.tradable || item.player || item._embedded?.player || item;
+    return (objectName(tradable) ? 3 : 0) + (objectMoney(item) || objectMoney(tradable) ? 2 : 0);
   });
 
   return items
     .filter((item) => item && typeof item === "object")
     .map((item, index) => {
-      const player = item.player || item;
+      const player = item.tradable || item._embedded?.tradable || item.player || item._embedded?.player || item;
+      const playerName = objectName(player);
       return {
-        player: objectName(player),
+        player: playerName,
         price: formatMoney(firstValue(item.price, item.amount, item.value, objectMoney(player))),
-        seller: objectName(item.seller || item.owner || item.user || {}) || "Transfermarkt",
-        reason: "Aktuell per Comunio-API auf dem Transfermarkt sichtbar.",
+        seller: objectName(item.seller || item.owner || item.user || item.from || item._embedded?.seller || {}) || "Transfermarkt",
+        reason: "Aktuelles Marktangebot mit sichtbarem Spieler und Preis.",
         priority: index + 1
       };
     })
-    .filter((item) => item.player)
+    .filter((item) => item.player && normalizeText(item.player) !== "computer")
     .slice(0, 12);
 }
 
@@ -949,6 +959,13 @@ function buildAnalysis(raw, generatedLineupImage) {
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
   const budget = findBudget(offers) || findBudget(lineup) || findBudget(squad);
+  const lowestPointPlayer = [...squadPlayers]
+    .filter((player) => player.name && normalizeText(player.name) !== "computer")
+    .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
+  const highValueCandidate = [...squadPlayers]
+    .filter((player) => player.name && normalizeText(player.name) !== "computer")
+    .sort((a, b) => (numberish(b.marketValue) || 0) - (numberish(a.marketValue) || 0))[0];
+  const roleRisk = lowestPointPlayer || highValueCandidate || squadPlayers[0];
 
   return {
     league: "WM Comunio",
@@ -969,30 +986,30 @@ function buildAnalysis(raw, generatedLineupImage) {
         ? {
             player: marketCandidates[0].player,
             title: "Kaufempfehlung",
-            reason: `${marketCandidates[0].player} ist aktuell auf dem Markt sichtbar. Preis pruefen und nur mit Reserve bieten.`,
+            reason: `${marketCandidates[0].price ? `Bei ${marketCandidates[0].price} ` : ""}nur zuschlagen, wenn danach noch Reserve bleibt; als Marktchance gegen die Konkurrenz einplanen.`,
             confidence: "mittel"
           }
         : undefined,
-      sell: squadPlayers[0]
+      sell: lowestPointPlayer
         ? {
-            player: squadPlayers[squadPlayers.length - 1]?.name || squadPlayers[0].name,
+            player: lowestPointPlayer.name,
             title: "Verkaufskandidat",
-            reason: "Kader per API geladen. Verkaufskandidat nach ChatGPT-Analyse aus Rollen, Punkten und Marktangeboten verfeinern.",
+            reason: `${lowestPointPlayer.points !== undefined ? `${lowestPointPlayer.points} Punkte sprechen fuer genaues Pruefen. ` : ""}Bei gutem Angebot als Tauschmasse nutzen, wenn ein klarer Starter auf dem Markt liegt.`,
             confidence: "mittel"
           }
         : undefined,
-      risk: squadPlayers[0]
+      risk: roleRisk
         ? {
-            player: squadPlayers[0].name,
+            player: roleRisk.name,
             title: "Startelf-Risiko",
-            reason: "Aufstellung und Kader per API geladen. Startelf-Risiko nach Spieltagsdaten und Rollenverteilung pruefen.",
+            reason: "Rolle, Punkteausbeute und Minuten vor dem naechsten Spieltag beobachten; bei unsicherem Startelfstatus nicht blind halten.",
             confidence: "mittel"
           }
         : undefined,
       budget: {
-        title: budget ? "Budget aus Comunio erkannt" : "Budget weiter per Telegram sichern",
+        title: budget ? "Budget gezielt einsetzen" : "Budget weiter per Telegram sichern",
         reason: budget
-          ? `${budget} auf dem Konto. Reserve fuer kurzfristige Marktchancen halten.`
+          ? `${budget} auf dem Konto: fuer einen Premium-Deal bieten, aber einen Puffer fuer Nachkaeufe und Spieltagsreaktionen behalten.`
           : "Kontostand wurde in den API-Daten noch nicht sicher gefunden; Telegram-/Budget-Screenshot bleibt Backup.",
         confidence: budget ? "hoch" : "mittel"
       }

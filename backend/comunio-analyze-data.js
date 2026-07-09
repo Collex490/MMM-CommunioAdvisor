@@ -18,7 +18,43 @@ const sourcePath = process.env.COMMUNIO_API_ANALYZE_SOURCE
   || process.env.COMUNIO_API_ANALYZE_SOURCE
   || path.join(__dirname, "..", "data", "comunio-api-raw.json");
 
-async function analyzeComunioRawData(rawPayload) {
+async function readJsonIfExists(filePath, fallback = {}) {
+  try {
+    return JSON.parse(await fs.readFile(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+function compactPayloadForAnalysis(rawPayload, currentData) {
+  const relevantPages = (rawPayload.pages || [])
+    .filter((page) => page?.status === 200 && page.json)
+    .filter((page) => /lineup|squad|offers|matchdays|news|standings|market/i.test(page.url || ""))
+    .map((page) => ({
+      url: page.url,
+      contentType: page.contentType,
+      jsonPreview: JSON.stringify(page.json).slice(0, 12000)
+    }))
+    .slice(0, 10);
+
+  return {
+    latestStructuredData: {
+      league: currentData.league,
+      club: currentData.club,
+      standings: currentData.standings || [],
+      transferTicker: currentData.transferTicker || [],
+      budgetStatus: currentData.budgetStatus || {},
+      marketCandidates: currentData.marketCandidates || [],
+      squadInsights: currentData.squadInsights || {},
+      matchdays: currentData.matchdays || [],
+      lineupImage: currentData.lineupImage || {},
+      generatedAt: currentData.generatedAt
+    },
+    rawApiExtracts: relevantPages
+  };
+}
+
+async function analyzeComunioRawData(payload) {
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
     response_format: { type: "json_object" },
@@ -29,9 +65,11 @@ async function analyzeComunioRawData(rawPayload) {
           "Du analysierst Rohdaten aus Comunio-Seiten fuer ein MagicMirror-Modul.",
           "Gib ausschliesslich JSON im bekannten ComunioAdvisor-Schema zurueck.",
           "Erfinde keine exakten Spieler, Punkte, Marktwerte oder Budgets, wenn sie in den Rohdaten nicht stehen.",
-          "Nutze die Daten, um Tabelle, Kader, Aufstellung, Transfers, Transfermarkt, Budget und Managerempfehlungen zu extrahieren.",
+          "Nutze latestStructuredData zuerst; rawApiExtracts sind nur Zusatzbelege.",
+          "Nutze die Daten, um Tabelle, Kader, Aufstellung, Transfers, Transfermarkt, Budget und Managerempfehlungen zu bewerten.",
           "Die vier recommendation-Kacheln muessen analytische Manager-Hinweise sein, keine technischen Meta-Saetze.",
           "Schreibe niemals Formulierungen wie 'API geladen', 'Screenshot sichtbar', 'Computer ist aktuell sichtbar' oder 'nach ChatGPT-Analyse verfeinern' in Kacheln.",
+          "Schreibe auch niemals 'Noch keine Daten', 'nicht verwertbar' oder 'keine auslesbaren Daten', wenn latestStructuredData bereits Markt, Kader, Budget oder Tabelle enthaelt.",
           "Beste Kaufempfehlung muss aus aktuellen Marktangeboten/offers kommen. Nutze niemals 'Computer' als Spielername.",
           "Verkaufskandidat muss aus dem eigenen Kader kommen und kurz begruenden, warum Verkauf oder Tausch sinnvoll sein koennte.",
           "Startelf-Risiko bedeutet: ein eigener Spieler mit unsicherer Rolle, schwacher Preis-Leistung, Rotations-/Minutenrisiko oder Bedarf zum Beobachten.",
@@ -42,10 +80,10 @@ async function analyzeComunioRawData(rawPayload) {
       {
         role: "user",
         content: [
-          "Analysiere diese Comunio-Rohdaten.",
+          "Analysiere diese strukturierten Comunio-Daten fuer die MagicMirror-Kacheln.",
           "Rollenspielwelt: Pasta La Vista FC, Patron Co, Gennaro Gattuso, Motto Mangia Lotta Vinci, Captain Sorloth; Sporting Bolzackerer; Squadra Absenta.",
           "Schema: { league: string, source: { platform: string, screenType: string }, club: { name: string, boss: string, coach: string, colors: string[], motto: string, captain: string }, recommendations: { buy: { player: string, reason: string, confidence: string }, sell: { player: string, reason: string, confidence: string }, risk: { player: string, reason: string, confidence: string }, budget: { title: string, reason: string, confidence: string } }, marketCandidates: [{ player: string, price: string, seller: string, reason: string, priority: number }], standings: [{ rank: number, name: string, matchdayPoints: number, totalPoints: number, marketValue: string, isUserClub: boolean }], transferTicker: [{ action: string, player: string, club: string, price: string }], budgetStatus: { amount: string, note: string }, squadInsights: { keep: string[], sell: string[], watch: string[] }, rumorKitchen: { headline: string, body: string }, generatedAt: string }.",
-          JSON.stringify(rawPayload).slice(0, 60000)
+          JSON.stringify(payload).slice(0, 60000)
         ].join("\n\n")
       }
     ]
@@ -55,8 +93,10 @@ async function analyzeComunioRawData(rawPayload) {
 }
 
 async function main() {
-  const rawPayload = JSON.parse(await fs.readFile(sourcePath, "utf8"));
-  const analysis = normalizeAnalysis(await analyzeComunioRawData(rawPayload));
+  const rawPayload = await readJsonIfExists(sourcePath, {});
+  const currentData = await readJsonIfExists(dataPath, {});
+  const payload = compactPayloadForAnalysis(rawPayload, currentData);
+  const analysis = normalizeAnalysis(await analyzeComunioRawData(payload));
   analysis.source = {
     platform: "Comunio",
     screenType: "api-analysis"
