@@ -1,9 +1,21 @@
 const fs = require("fs/promises");
+const fsSync = require("fs");
 const path = require("path");
+const dotenv = require("dotenv");
 
-require("dotenv").config({
-  path: path.join(__dirname, "..", ".env")
-});
+const envPath = path.join(__dirname, "..", ".env");
+dotenv.config({ path: envPath });
+
+try {
+  const parsedEnv = dotenv.parse(fsSync.readFileSync(envPath));
+  Object.entries(parsedEnv).forEach(([key, value]) => {
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  });
+} catch {
+  // The login command below will show a friendly missing-env message.
+}
 
 const dataDir = process.env.COMMUNIO_ADVISOR_TEST_DATA_DIR
   || path.join(__dirname, "..", "data");
