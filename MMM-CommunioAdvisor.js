@@ -10,7 +10,7 @@
     showRumorImage: true,
     showSquadInsights: true,
     nextMatchdayAt: "",
-    nextMatchdayLabel: "NÃƒÂ¤chster Spieltag",
+    nextMatchdayLabel: "Naechster Spieltag",
     matchdays: [],
     showDebug: false
   },
@@ -258,12 +258,12 @@
 
   formatCurrencyText(value) {
     const text = String(value || "").trim();
-    if (!text || /Ã¢â€šÂ¬|eur|offen|unbekannt|^-$/i.test(text)) {
+    if (!text || /\u20ac|eur|offen|unbekannt|^-$/i.test(text)) {
       return text;
     }
 
-    return /^\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?$|^\d{4,}$/.test(text)
-      ? `${text} Ã¢â€šÂ¬`
+    return /^\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?$|^-?\d{4,}$/.test(text)
+      ? `${text} \u20ac`
       : text;
   },
 
@@ -575,14 +575,14 @@
     }
 
     const diffMs = target.getTime() - Date.now();
-    const label = matchday.label || this.config.nextMatchdayLabel || "NÃƒÂ¤chster Spieltag";
+    const label = matchday.label || this.config.nextMatchdayLabel || "Naechster Spieltag";
 
     if (diffMs <= 0 && diffMs > -3 * 60 * 60 * 1000) {
-      return { label, value: "lÃƒÂ¤uft jetzt" };
+      return { label, value: "laeuft jetzt" };
     }
 
     if (diffMs <= 0) {
-      return { label, value: "heute prÃƒÂ¼fen" };
+      return { label, value: "heute pruefen" };
     }
 
     const totalMinutes = Math.ceil(diffMs / 60000);
@@ -829,11 +829,11 @@
 
     const label = document.createElement("div");
     label.className = "communio-advisor__card-label";
-    label.textContent = "GerÃƒÂ¼chtekÃƒÂ¼che";
+    label.textContent = "Geruechtekueche";
 
     const headline = document.createElement("div");
     headline.className = "communio-advisor__rumor-headline";
-    headline.textContent = rumorKitchen?.headline || "Patron Co prÃƒÂ¼ft Last-Minute-Deal";
+    headline.textContent = rumorKitchen?.headline || "Patron Co prueft Last-Minute-Deal";
 
     const body = document.createElement("div");
     body.className = "communio-advisor__card-reason";
