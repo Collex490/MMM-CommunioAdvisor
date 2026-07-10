@@ -981,20 +981,30 @@ function mapLivePlayers(raw) {
 
   livePages
     .forEach((page) => {
+      const pageIsLive = normalizeText(firstValue(page.json?.id, page.json?.key, page.json?.period)) === "live"
+        || page.url.includes("period=live");
       walk(page.json, (item) => {
         if (!item || typeof item !== "object") return;
 
-        const name = objectName(item.player || item.tradable || item);
+        const playerObject = item.player || item.tradable || item._embedded?.player || item._embedded?.tradable || item;
+        const name = objectName(playerObject);
         if (!name || !ownPlayerNames.has(normalizeText(name))) return;
 
-        const livePoints = directNumberByKeys(item, [
+        let livePoints = directNumberByKeys(item, [
           "livepoints",
           "live_points",
           "currentpoints",
           "current_points",
           "currentmatchpoints",
-          "current_match_points"
+          "current_match_points",
+          "matchdaypoints",
+          "matchday_points",
+          "lastpoints",
+          "last_points"
         ]);
+        if (livePoints === undefined && pageIsLive) {
+          livePoints = directNumberByKeys(item, ["points", "score"]);
+        }
 
         const hasLiveState = Boolean(directValueByKeys(item, [
           "livestatus",
@@ -1007,14 +1017,14 @@ function mapLivePlayers(raw) {
 
         livePlayers.set(normalizeText(name), {
           name,
-          position: firstValue(item.position, item.type, item.role, item.player?.position, item.tradable?.position, ""),
-          club: firstValue(item.clubName, item.teamName, item.player?.clubName, item.tradable?.clubName, ""),
+          position: firstValue(item.position, item.type, item.role, playerObject.position, playerObject.type, playerObject.role, ""),
+          club: firstValue(item.clubName, item.teamName, playerObject.clubName, playerObject.teamName, ""),
           livePoints,
           status: String(firstValue(
             directValueByKeys(item, ["livestatus", "matchstatus", "game_status", "status"]),
             "live"
           )),
-          photoUrl: playerPhotoUrl({ raw: item.player || item.tradable || item })
+          photoUrl: playerPhotoUrl({ raw: playerObject })
         });
       });
     });
