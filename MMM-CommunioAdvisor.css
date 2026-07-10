@@ -258,6 +258,58 @@
   white-space: nowrap;
 }
 
+.communio-advisor__status-item--budget strong {
+  font-size: 17px;
+}
+
+.communio-advisor__status-item--negative strong {
+  color: #ff6b6b;
+  font-size: 17px;
+}
+
+.communio-advisor__gap {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 5px !important;
+}
+
+.communio-advisor__gap-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 48px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.communio-advisor__gap-chip::before {
+  font-size: 0.86em;
+}
+
+.communio-advisor__gap-chip--bad {
+  color: #ffd6d6;
+  background: rgba(205, 63, 63, 0.82);
+}
+
+.communio-advisor__gap-chip--bad::before {
+  content: "\25B2";
+}
+
+.communio-advisor__gap-chip--good {
+  color: #e9ffe9;
+  background: rgba(49, 161, 64, 0.86);
+}
+
+.communio-advisor__gap-chip--good::before {
+  content: "\25BC";
+}
+
 .communio-advisor__status-item strong.communio-advisor__status-multi {
   font-size: 13px;
   line-height: 1.2;
