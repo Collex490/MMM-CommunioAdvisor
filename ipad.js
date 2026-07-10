@@ -198,12 +198,17 @@
         status: player.status || "Saisonpunkte"
       }));
     const players = livePlayers.length ? livePlayers : fallbackPlayers;
+    const hasMatchdayPoints = livePlayers.length > 0;
+    const isLive = livePlayers.some((player) => {
+      const status = String(player.status || "").toLowerCase();
+      return ["live", "running", "playing", "active", "inprogress", "in_progress"].includes(status);
+    });
     if (!players.length) return null;
 
     const node = el("section", "ipad-advisor__player-preview");
     const header = el("div", "ipad-advisor__player-preview-header");
-    header.appendChild(el("span", "ipad-advisor__label", livePlayers.length ? "Live-Punkte" : "Kader-Vorschau"));
-    header.appendChild(el("strong", "", livePlayers.length ? "Spiel läuft" : "alle Spieler"));
+    header.appendChild(el("span", "ipad-advisor__label", isLive ? "Live-Punkte" : (hasMatchdayPoints ? "Spieltagspunkte" : "Kader-Vorschau")));
+    header.appendChild(el("strong", "", isLive ? "Spiel läuft" : (hasMatchdayPoints ? "aktueller Spieltag" : "alle Spieler")));
     node.appendChild(header);
 
     const list = el("div", "ipad-advisor__player-preview-list");
@@ -219,11 +224,11 @@
 
       const info = el("div", "ipad-advisor__player-preview-info");
       info.appendChild(el("strong", "", player.name || "Unbekannt"));
-      info.appendChild(el("span", "", livePlayers.length ? "live" : [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
+      info.appendChild(el("span", "", hasMatchdayPoints ? (isLive ? "live" : "Spieltag") : [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
       item.appendChild(photo);
       item.appendChild(info);
 
-      if (livePlayers.length) {
+      if (hasMatchdayPoints) {
         item.appendChild(el("em", "ipad-advisor__player-preview-points", `${player.livePoints ?? "-"} P`));
       }
       list.appendChild(item);

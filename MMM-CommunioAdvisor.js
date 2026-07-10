@@ -417,7 +417,11 @@
         status: player.status || "Saisonpunkte"
       }));
     const players = livePlayers.length ? livePlayers : fallbackPlayers;
-    const isLive = livePlayers.length > 0;
+    const hasMatchdayPoints = livePlayers.length > 0;
+    const isLive = livePlayers.some((player) => {
+      const status = String(player.status || "").toLowerCase();
+      return ["live", "running", "playing", "active", "inprogress", "in_progress"].includes(status);
+    });
 
     if (!players.length) {
       return document.createDocumentFragment();
@@ -431,11 +435,11 @@
 
     const title = document.createElement("div");
     title.className = "communio-advisor__card-label";
-    title.textContent = isLive ? "Live-Punkte" : "Kader-Vorschau";
+    title.textContent = isLive ? "Live-Punkte" : (hasMatchdayPoints ? "Spieltagspunkte" : "Kader-Vorschau");
 
     const state = document.createElement("div");
     state.className = "communio-advisor__live-state";
-    state.textContent = isLive ? "Spiel läuft" : "Kader-Vorschau";
+    state.textContent = isLive ? "Spiel läuft" : (hasMatchdayPoints ? "aktueller Spieltag" : "Kader-Vorschau");
 
     header.appendChild(title);
     header.appendChild(state);
@@ -464,7 +468,7 @@
       name.textContent = player.name || "Unbekannt";
 
       const meta = document.createElement("span");
-      meta.textContent = isLive ? "live" : this.formatPlayerMeta(player);
+      meta.textContent = hasMatchdayPoints ? (isLive ? "live" : "Spieltag") : this.formatPlayerMeta(player);
 
       info.appendChild(name);
       if (meta.textContent) {
@@ -473,7 +477,7 @@
 
       item.appendChild(photo);
       item.appendChild(info);
-      if (isLive) {
+      if (hasMatchdayPoints) {
         const points = document.createElement("div");
         points.className = "communio-advisor__live-points";
         const value = player.livePoints ?? "-";
