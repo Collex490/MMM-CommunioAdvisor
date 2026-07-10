@@ -3,13 +3,7 @@
     dataFile: "data/latest.json",
     clubName: "Pasta La Vista FC",
     title: "WM Comunio",
-    refreshMs: 60 * 1000,
-    matchdays: [
-      { label: "Viertelfinale", at: "2026-07-10T20:00:00+02:00" },
-      { label: "Halbfinale", at: "2026-07-14T20:00:00+02:00" },
-      { label: "Spiel um Platz 3", at: "2026-07-18T20:00:00+02:00" },
-      { label: "Finale", at: "2026-07-19T20:00:00+02:00" }
-    ]
+    refreshMs: 60 * 1000
   };
 
   const app = document.getElementById("app");
@@ -107,41 +101,6 @@
     });
   }
 
-  function getNextMatchday(data) {
-    const configured = Array.isArray(CONFIG.matchdays) ? CONFIG.matchdays : [];
-    const fromData = Array.isArray(data.matchdays) ? data.matchdays : [];
-    const matchdays = [...fromData, ...configured]
-      .filter((matchday) => matchday && (matchday.at || matchday.date))
-      .sort((a, b) => new Date(a.at || a.date).getTime() - new Date(b.at || b.date).getTime());
-    const now = Date.now();
-
-    return matchdays.find((matchday) => {
-      const time = new Date(matchday.at || matchday.date).getTime();
-      return Number.isFinite(time) && time > now - 3 * 60 * 60 * 1000;
-    });
-  }
-
-  function getCountdown(data) {
-    const matchday = getNextMatchday(data);
-    if (!matchday) return { label: "Fokus", value: "Analyse" };
-
-    const target = new Date(matchday.at || matchday.date);
-    const diffMs = target.getTime() - Date.now();
-    const label = matchday.label || "Naechster Spieltag";
-
-    if (diffMs <= 0 && diffMs > -3 * 60 * 60 * 1000) return { label, value: "laeuft jetzt" };
-    if (diffMs <= 0) return { label, value: "heute pruefen" };
-
-    const totalMinutes = Math.ceil(diffMs / 60000);
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
-    const minutes = totalMinutes % 60;
-
-    if (days > 0) return { label, value: `${days}T ${hours}Std` };
-    if (hours > 0) return { label, value: `${hours}Std ${minutes}Min` };
-    return { label, value: `${minutes}Min` };
-  }
-
   function card(label, item, fallback) {
     const recommendation = normalizeRecommendation(item, fallback);
     const node = el("section", "ipad-advisor__card");
@@ -153,24 +112,71 @@
 
   function statusStrip(data) {
     const ownTeam = getOwnTeam(data);
-    const countdown = getCountdown(data);
     const budget = data.budgetStatus || {};
     const points = firstValue(ownTeam?.totalPoints, ownTeam?.points);
+    const tableStatus = getTableStatus(data.standings || [], ownTeam);
     const items = [
       ["Budget", firstValue(budget.amount, budget.label, "offen")],
       ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
       ["Punkte", points ? `${points} P` : "-"],
-      [countdown.label, countdown.value]
+      [tableStatus.label, tableStatus.value]
     ];
 
     const node = el("section", "ipad-advisor__status");
     items.forEach(([label, value]) => {
       const item = el("div", "ipad-advisor__status-item");
       item.appendChild(el("span", "", label));
-      item.appendChild(el("strong", "", value));
+      if (Array.isArray(value)) {
+        const multi = el("strong", "ipad-advisor__status-multi");
+        value.forEach((line) => multi.appendChild(el("em", "", line)));
+        item.appendChild(multi);
+      } else {
+        item.appendChild(el("strong", "", value));
+      }
       node.appendChild(item);
     });
     return node;
+  }
+
+  function getTableStatus(standings, ownTeam) {
+    if (!ownTeam) return { label: "Tabellenlage", value: "-" };
+
+    const ownPoints = Number(firstValue(ownTeam.totalPoints, ownTeam.points));
+    const ownRank = Number(ownTeam.rank);
+    if (!Number.isFinite(ownPoints) || !Number.isFinite(ownRank)) {
+      return { label: "Tabellenlage", value: "-" };
+    }
+
+    const sorted = [...standings]
+      .filter((team) => team && Number.isFinite(Number(team.rank)))
+      .sort((a, b) => Number(a.rank) - Number(b.rank));
+
+    if (ownRank === 1) {
+      const chaser = sorted.find((team) => Number(team.rank) === 2);
+      const chaserPoints = Number(firstValue(chaser?.totalPoints, chaser?.points));
+      if (!Number.isFinite(chaserPoints)) return { label: "Vorsprung", value: "Spitze" };
+      const gap = Math.max(0, ownPoints - chaserPoints);
+      return { label: "Vorsprung", value: gap > 0 ? `${gap} P auf Platz 2` : "Spitze" };
+    }
+
+    const leader = sorted.find((team) => Number(team.rank) === 1);
+    const front = sorted.find((team) => Number(team.rank) === ownRank - 1);
+    const rear = sorted.find((team) => Number(team.rank) === ownRank + 1);
+    const leaderPoints = Number(firstValue(leader?.totalPoints, leader?.points));
+    const frontPoints = Number(firstValue(front?.totalPoints, front?.points));
+    const rearPoints = Number(firstValue(rear?.totalPoints, rear?.points));
+
+    const leaderGap = Number.isFinite(leaderPoints) ? Math.max(0, leaderPoints - ownPoints) : null;
+    const frontGap = Number.isFinite(frontPoints) ? Math.max(0, frontPoints - ownPoints) : null;
+    const rearGap = Number.isFinite(rearPoints) ? Math.max(0, ownPoints - rearPoints) : null;
+
+    return {
+      label: "Tabellenlage",
+      value: [
+        leaderGap === null ? "Spitze: -" : `Spitze: ${leaderGap} P`,
+        `${frontGap === null ? "Vorn: -" : `Vorn: ${frontGap} P`} · ${rearGap === null ? "hinten frei" : `+${rearGap} P nach hinten`}`
+      ]
+    };
   }
 
   function ticker(data) {
