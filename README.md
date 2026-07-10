@@ -1,6 +1,6 @@
-# MMM-CommunioAdvisor
+﻿# MMM-CommunioAdvisor
 
-MagicMirror-Modul fuer Comunio/Kickbase-Screenshots mit Telegram-Upload, OpenAI-Vision-Analyse und Rollenspiel-Geruechtekueche.
+MagicMirror-Modul für Comunio/Kickbase-Screenshots mit Telegram-Upload, OpenAI-Vision-Analyse und Rollenspiel-Gerüchteküche.
 
 Version 0.1 ist bewusst einfach gehalten:
 
@@ -8,7 +8,7 @@ Version 0.1 ist bewusst einfach gehalten:
 - keine Logins
 - kein Scraping
 - Demo-Daten aus `data/latest.json`
-- vorbereitetes Node.js-Backend fuer Telegram und OpenAI
+- vorbereitetes Node.js-Backend für Telegram und OpenAI
 
 ## Anzeige
 
@@ -20,13 +20,13 @@ Das Modul zeigt:
 - Startelf-Risiko
 - Budget-Hinweis
 - Ligatabelle mit Punkten
-- Transfermarkt-Laufbanner fuer Kaeufe und Verkaeufe
+- Transfermarkt-Laufbanner für Käufe und Verkäufe
 - Teamaufstellung als gespeichertes Screenshot-Bild
-- Kader-Check fuer Halten, Verkaufen/Tauschen und Beobachten
-- Geruechtekueche mit optional generiertem Fantasy-Sportmedien-Bild
+- Kader-Check für Halten, Verkaufen/Tauschen und Beobachten
+- Gerüchteküche mit optional generiertem Fantasy-Sportmedien-Bild
 - Zeitstempel der letzten Analyse
 
-Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar auf dem MagicMirror.
+Design: dunkler Hintergrund, goldene Akzente für Pasta La Vista FC, gut lesbar auf dem MagicMirror.
 
 ## Installation auf dem Raspberry Pi
 
@@ -36,7 +36,7 @@ Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar 
    cp -r MMM-CommunioAdvisor /home/pi/MagicMirror/modules/
    ```
 
-2. Abhaengigkeiten installieren:
+2. Abhängigkeiten installieren:
 
    ```bash
    cd /home/pi/MagicMirror/modules/MMM-CommunioAdvisor
@@ -71,7 +71,7 @@ Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar 
 
 5. Carousel-Seite 3 konfigurieren.
 
-   In deiner aktuellen `MMM-Carousel`-Konfiguration nutzt du `mode: "slides"` mit einer `slides`-Liste. Ergaenze dort eine dritte Seite fuer den Comunio Advisor:
+   In deiner aktuellen `MMM-Carousel`-Konfiguration nutzt du `mode: "slides"` mit einer `slides`-Liste. Ergänze dort eine dritte Seite für den Comunio Advisor:
 
    ```js
    {
@@ -91,7 +91,7 @@ Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar 
    }
    ```
 
-   Wichtig: `MMM-CommunioAdvisor` muss zusaetzlich als eigenes Modul in der `modules`-Liste stehen. Der Carousel-Block steuert nur, auf welcher Seite es angezeigt wird.
+   Wichtig: `MMM-CommunioAdvisor` muss zusätzlich als eigenes Modul in der `modules`-Liste stehen. Der Carousel-Block steuert nur, auf welcher Seite es angezeigt wird.
 
 6. MagicMirror neu starten:
 
@@ -101,7 +101,7 @@ Design: dunkler Hintergrund, goldene Akzente fuer Pasta La Vista FC, gut lesbar 
 
 ## Demo testen
 
-Die Datei `data/latest.json` enthaelt Beispielwerte. MagicMirror sollte die Karten direkt anzeigen, sobald das Modul in der Konfiguration aktiv ist.
+Die Datei `data/latest.json` enthält Beispielwerte. MagicMirror sollte die Karten direkt anzeigen, sobald das Modul in der Konfiguration aktiv ist.
 
 ## Telegram/OpenAI vorbereiten
 
@@ -116,12 +116,12 @@ Die Datei `data/latest.json` enthaelt Beispielwerte. MagicMirror sollte die Kart
   - `TELEGRAM_BOT_TOKEN`: Token vom BotFather
   - `TELEGRAM_ALLOWED_CHAT_ID`: optional, aber empfohlen
   - `OPENAI_API_KEY`: OpenAI API-Key
-  - `COMMUNIO_ADVISOR_GENERATE_RUMOR_IMAGE`: `true`, wenn zu jeder Analyse ein fiktives Geruechte-Bild generiert werden soll
+  - `COMMUNIO_ADVISOR_GENERATE_RUMOR_IMAGE`: `true`, wenn zu jeder Analyse ein fiktives Gerüchte-Bild generiert werden soll
   - `COMMUNIO_ADVISOR_DATA_PATH`: Zielpfad der JSON-Datei
-  - `COMMUNIO_ADVISOR_UPLOAD_DIR`: Zielordner fuer hochgeladene Screenshots
-  - `COMMUNIO_ADVISOR_PUBLIC_UPLOAD_BASE`: oeffentlicher MagicMirror-Pfad fuer Uploads
+  - `COMMUNIO_ADVISOR_UPLOAD_DIR`: Zielordner für hochgeladene Screenshots
+  - `COMMUNIO_ADVISOR_PUBLIC_UPLOAD_BASE`: öffentlicher MagicMirror-Pfad für Uploads
 
-Geruechtebilder sind bewusst als fiktive Parodie angelegt. Sie nutzen keine echten Logos oder 1:1-Layouts von Kicker, Transfermarkt, BILD oder anderen Medienmarken.
+Gerüchtebilder sind bewusst als fiktive Parodie angelegt. Sie nutzen keine echten Logos oder 1:1-Layouts von Kicker, Transfermarkt, BILD oder anderen Medienmarken.
 
 3. Telegram-Bot starten:
 
@@ -131,11 +131,11 @@ Geruechtebilder sind bewusst als fiktive Parodie angelegt. Sie nutzen keine echt
 
 4. Screenshot an den Bot senden.
 
-Der Bot speichert die aktuelle Tagesuebersicht in `data/latest.json`. MagicMirror liest diese Datei automatisch nach.
+Der Bot speichert die aktuelle Tagesübersicht in `data/latest.json`. MagicMirror liest diese Datei automatisch nach.
 
 ### Telegram-Modi
 
-Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Fuer Version 1 ist es aber zuverlaessiger, vorher einen Modus zu setzen. Pro Modus koennen auch 2-3 Screenshots nacheinander geschickt werden; der Bot fuegt passende Daten zur Tagesuebersicht zusammen.
+Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Für Version 1 ist es aber zuverlässiger, vorher einen Modus zu setzen. Pro Modus können auch 2-3 Screenshots nacheinander geschickt werden; der Bot fügt passende Daten zur Tagesübersicht zusammen.
 
 ```text
 /auto
@@ -144,7 +144,7 @@ Der Bot kann automatisch erkennen, welcher Screenshot-Typ gesendet wurde. Fuer V
 /aufstellung
 /budget
 /kader
-/kapitaen Sorloth
+/kapitän Sorloth
 /logo
 /status
 ```
@@ -155,7 +155,7 @@ Beispiele:
 /transfers
 ```
 
-Danach 2-3 Transfermarkt-Screenshots schicken. Der Bot sammelt die erkannten Kaeufe und Verkaeufe im Transfermarkt-Banner.
+Danach 2-3 Transfermarkt-Screenshots schicken. Der Bot sammelt die erkannten Käufe und Verkäufe im Transfermarkt-Banner.
 
 ```text
 /aufstellung
@@ -167,22 +167,22 @@ Danach die offizielle Aufstellung schicken. Der Bot speichert sie als `uploads/l
 /kader
 ```
 
-Danach den Kader schicken. Der Bot fuellt den Kader-Check mit Halten, Verkaufen/Tauschen und Beobachten.
+Danach den Kader schicken. Der Bot füllt den Kader-Check mit Halten, Verkaufen/Tauschen und Beobachten.
 
 ```text
-/kapitaen Sorloth
+/kapitän Sorloth
 ```
 
-Setzt den Kapitaen oben rechts im Modul.
+Setzt den Kapitän oben rechts im Modul.
 
 ```text
 /logo
 ```
 
-Danach ein Logo-Bild schicken. Der Bot speichert es als `uploads/club-logo.jpg` und zeigt es oben rechts neben dem Kapitaen an.
-Fuer transparente Logos die PNG am besten als Telegram-Datei/Dokument senden; dann speichert der Bot `uploads/club-logo.png`.
+Danach ein Logo-Bild schicken. Der Bot speichert es als `uploads/club-logo.jpg` und zeigt es oben rechts neben dem Kapitän an.
+Für transparente Logos die PNG am besten als Telegram-Datei/Dokument senden; dann speichert der Bot `uploads/club-logo.png`.
 
-Auch bei `/tabelle`, `/budget` und `/kader` duerfen mehrere Screenshots nacheinander kommen, wenn nicht alles auf ein Bild passt.
+Auch bei `/tabelle`, `/budget` und `/kader` dürfen mehrere Screenshots nacheinander kommen, wenn nicht alles auf ein Bild passt.
 
 ## Lokaler API-Modus
 
@@ -197,7 +197,7 @@ Endpoint:
 - `GET http://127.0.0.1:8787/api/latest`
 - `POST http://127.0.0.1:8787/api/latest`
 
-Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbereitet.
+Für Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbereitet.
 
 ## Datenformat
 
@@ -234,7 +234,7 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
     },
     "budget": {
       "title": "Budget-Hinweis",
-      "reason": "Budget-Einschaetzung",
+      "reason": "Budget-Einschätzung",
       "confidence": "hoch"
     }
   },
@@ -272,11 +272,11 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
   },
   "squadInsights": {
     "keep": ["Sorloth halten"],
-    "sell": ["Bankspieler ohne Einsatzgarantie pruefen"],
+    "sell": ["Bankspieler ohne Einsatzgarantie prüfen"],
     "watch": ["Rotation im Mittelfeld beobachten"]
   },
   "rumorKitchen": {
-    "headline": "Patron Co prueft Last-Minute-Deal",
+    "headline": "Patron Co prüft Last-Minute-Deal",
     "body": "Gattuso fordert mehr Biss im Mittelfeld."
   },
   "rumorImage": {
@@ -290,15 +290,15 @@ Fuer Version 1 reicht der Datei-Modus. Der API-Modus ist als Erweiterung vorbere
 
 ## Optionaler Comunio-Testadapter
 
-Telegram bleibt die stabile Hauptquelle. Der Comunio-Testadapter ist nur ein Labor, um zu pruefen, ob Comunio-Daten per Login/alten Seiten erreichbar sind.
+Telegram bleibt die stabile Hauptquelle. Der Comunio-Testadapter ist nur ein Labor, um zu prüfen, ob Comunio-Daten per Login/alten Seiten erreichbar sind.
 
-1. `.env` um Comunio-Zugangsdaten ergaenzen:
+1. `.env` um Comunio-Zugangsdaten ergänzen:
 
    ```bash
    nano .env
    ```
 
-   Diese Zeilen einfuegen oder anpassen:
+   Diese Zeilen einfügen oder anpassen:
 
    ```env
    COMMUNIO_USERNAME=dein-login
@@ -334,11 +334,11 @@ Telegram bleibt die stabile Hauptquelle. Der Comunio-Testadapter ist nur ein Lab
 
    Danach wird `data/latest.json` wie bei Telegram aktualisiert. Wenn der Login-Test nur Login- oder Fehlerseiten liefert, diesen Schritt noch nicht nutzen.
 
-## Naechste Ausbaustufen
+## Nächste Ausbaustufen
 
 - Screenshot-Typ sicherer klassifizieren: Kader, Transfermarkt, Budget, Aufstellung
-- Tabellen-Screenshots und Transfermarkt-Screenshots zu einer gemeinsamen Ligazentrale zusammenfuehren
-- Mehrere Screenshots zu einer gemeinsamen Analyse zusammenfuehren
+- Tabellen-Screenshots und Transfermarkt-Screenshots zu einer gemeinsamen Ligazentrale zusammenführen
+- Mehrere Screenshots zu einer gemeinsamen Analyse zusammenführen
 - Historie in `data/history/` speichern
-- Kickbase-spezifische Felder ergaenzen
-- Comunio-Testadapter auswerten und nur bei stabilen Ergebnissen in den Regelbetrieb uebernehmen
+- Kickbase-spezifische Felder ergänzen
+- Comunio-Testadapter auswerten und nur bei stabilen Ergebnissen in den Regelbetrieb übernehmen

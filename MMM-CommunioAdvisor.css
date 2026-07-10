@@ -160,18 +160,18 @@
 
 .communio-advisor__live-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 6px;
   margin-top: 8px;
 }
 
 .communio-advisor__live-player {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  min-height: 60px;
-  padding: 6px 8px;
+  gap: 6px;
+  min-height: 48px;
+  padding: 5px 6px;
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 8px;
@@ -181,15 +181,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   object-fit: cover;
   color: #141414;
   background: var(--advisor-gold);
   border: 2px solid rgba(224, 177, 63, 0.95);
   border-radius: 50%;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -207,24 +207,24 @@
 
 .communio-advisor__live-info strong {
   color: var(--advisor-text);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.1;
 }
 
 .communio-advisor__live-info span {
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--advisor-muted);
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .communio-advisor__live-points {
-  min-width: 42px;
-  padding: 5px 7px;
+  min-width: 34px;
+  padding: 4px 6px;
   color: #fff;
   background: #2f9a36;
   border: 1px solid rgba(87, 213, 91, 0.45);
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   text-align: center;

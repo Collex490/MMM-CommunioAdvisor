@@ -148,6 +148,7 @@ body {
 .ipad-advisor__card,
 .ipad-advisor__lineup,
 .ipad-advisor__standings,
+.ipad-advisor__player-preview,
 .ipad-advisor__squad,
 .ipad-advisor__rumor {
   background: var(--panel);
@@ -309,9 +310,96 @@ body {
 
 .ipad-advisor__lineup,
 .ipad-advisor__standings,
+.ipad-advisor__player-preview,
 .ipad-advisor__squad,
 .ipad-advisor__rumor {
   padding: 9px 11px;
+}
+
+.ipad-advisor__player-preview {
+  margin-top: 8px;
+}
+
+.ipad-advisor__player-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ipad-advisor__player-preview-header strong {
+  color: var(--green);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.ipad-advisor__player-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.ipad-advisor__player-preview-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 43px;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+}
+
+.ipad-advisor__player-preview-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 999px;
+  color: #111;
+  background: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ipad-advisor__player-preview-info {
+  min-width: 0;
+}
+
+.ipad-advisor__player-preview-info strong,
+.ipad-advisor__player-preview-info span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipad-advisor__player-preview-info strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.ipad-advisor__player-preview-info span {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.ipad-advisor__player-preview-points {
+  min-width: 30px;
+  padding: 4px 5px;
+  color: #fff;
+  background: #2f9a36;
+  border-radius: 999px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  text-align: center;
 }
 
 .ipad-advisor__lineup-image {

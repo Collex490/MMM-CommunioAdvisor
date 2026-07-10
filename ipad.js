@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const CONFIG = {
     dataFile: "data/latest.json",
     clubName: "Pasta La Vista FC",
@@ -69,7 +69,7 @@
     if (!hasRecommendation(recommendations.buy)) {
       recommendations.buy = {
         title: "Keine Kaufempfehlung",
-        reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten.",
+        reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurückkaufen; Budget halten.",
         confidence: "hoch"
       };
     }
@@ -106,7 +106,7 @@
     const node = el("section", "ipad-advisor__card");
     node.appendChild(el("div", "ipad-advisor__label", label));
     node.appendChild(el("div", "ipad-advisor__card-title", firstValue(recommendation.player, recommendation.title, fallback)));
-    node.appendChild(el("div", "ipad-advisor__card-text", firstValue(recommendation.reason, recommendation.detail, "Noch keine Begruendung vorhanden.")));
+    node.appendChild(el("div", "ipad-advisor__card-text", firstValue(recommendation.reason, recommendation.detail, "Noch keine Begründung vorhanden.")));
     return node;
   }
 
@@ -177,6 +177,62 @@
     return labels[key] || position || "";
   }
 
+  function initials(name) {
+    return String(name || "?")
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  function playerPreview(data) {
+    const sourcePlayers = data.livePlayers || data.livePoints || [];
+    const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
+      .filter((player) => player && (player.livePoints !== undefined || player.status));
+    const fallbackPlayers = (Array.isArray(data.squadPlayers) ? data.squadPlayers : [])
+      .filter((player) => player && player.name)
+      .sort((a, b) => (b.points ?? -999) - (a.points ?? -999))
+      .map((player) => ({
+        ...player,
+        status: player.status || "Saisonpunkte"
+      }));
+    const players = livePlayers.length ? livePlayers : fallbackPlayers;
+    if (!players.length) return null;
+
+    const node = el("section", "ipad-advisor__player-preview");
+    const header = el("div", "ipad-advisor__player-preview-header");
+    header.appendChild(el("span", "ipad-advisor__label", livePlayers.length ? "Live-Punkte" : "Kader-Vorschau"));
+    header.appendChild(el("strong", "", livePlayers.length ? "Spiel läuft" : "alle Spieler"));
+    node.appendChild(header);
+
+    const list = el("div", "ipad-advisor__player-preview-list");
+    players.forEach((player) => {
+      const item = el("div", "ipad-advisor__player-preview-item");
+      const photo = el(player.photoUrl || player.imageUrl ? "img" : "div", "ipad-advisor__player-preview-photo");
+      if (player.photoUrl || player.imageUrl) {
+        photo.src = player.photoUrl || player.imageUrl;
+        photo.alt = player.name || "Spieler";
+      } else {
+        photo.textContent = initials(player.name);
+      }
+
+      const info = el("div", "ipad-advisor__player-preview-info");
+      info.appendChild(el("strong", "", player.name || "Unbekannt"));
+      info.appendChild(el("span", "", [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
+      item.appendChild(photo);
+      item.appendChild(info);
+
+      if (livePlayers.length) {
+        item.appendChild(el("em", "ipad-advisor__player-preview-points", `${player.livePoints ?? "-"} P`));
+      }
+      list.appendChild(item);
+    });
+
+    node.appendChild(list);
+    return node;
+  }
+
   function getTableStatus(standings, ownTeam) {
     if (!ownTeam) return { label: "Lage", value: "-", type: "gap" };
 
@@ -236,7 +292,7 @@
       .slice(0, 12)
       .map((item) => {
         if (item.text) return item.text;
-        const price = item.price ? ` fuer ${item.price}` : "";
+        const price = item.price ? ` für ${item.price}` : "";
         const direction = item.from || item.to
           ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
           : `zu ${item.club || "unbekannt"}`;
@@ -330,8 +386,8 @@
 
   function rumor(data) {
     const node = el("section", "ipad-advisor__rumor");
-    node.appendChild(el("div", "ipad-advisor__label", "Geruechtekueche"));
-    node.appendChild(el("div", "ipad-advisor__rumor-title", data.rumorKitchen?.headline || "Patron Co prueft den naechsten Deal"));
+    node.appendChild(el("div", "ipad-advisor__label", "Gerüchteküche"));
+    node.appendChild(el("div", "ipad-advisor__rumor-title", data.rumorKitchen?.headline || "Patron Co prüft den nächsten Deal"));
     node.appendChild(el("div", "ipad-advisor__rumor-text", data.rumorKitchen?.body || "Die Pasta-Zentrale kalkuliert weiter."));
     return node;
   }
@@ -361,6 +417,8 @@
     cards.appendChild(card("Budget-Hinweis", recommendations.budget, "Budget offen"));
     left.appendChild(cards);
     left.appendChild(statusStrip(data));
+    const preview = playerPreview(data);
+    if (preview) left.appendChild(preview);
     topGrid.appendChild(left);
 
     const side = el("div", "ipad-advisor__side");

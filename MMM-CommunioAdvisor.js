@@ -10,7 +10,7 @@
     showRumorImage: true,
     showSquadInsights: true,
     nextMatchdayAt: "",
-    nextMatchdayLabel: "Naechster Spieltag",
+    nextMatchdayLabel: "Nächster Spieltag",
     matchdays: [],
     showDebug: false
   },
@@ -195,7 +195,7 @@
     if (!this.hasRecommendation(recommendations.buy)) {
       recommendations.buy = {
         title: "Keine Kaufempfehlung",
-        reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten.",
+        reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurückkaufen; Budget halten.",
         confidence: "hoch"
       };
     }
@@ -408,12 +408,10 @@
   buildLivePlayers(data) {
     const sourcePlayers = data.livePlayers || data.livePoints || [];
     const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
-      .filter((player) => player && (player.livePoints !== undefined || player.status))
-      .slice(0, 6);
+      .filter((player) => player && (player.livePoints !== undefined || player.status));
     const fallbackPlayers = (Array.isArray(data.squadPlayers) ? data.squadPlayers : [])
       .filter((player) => player && player.name)
       .sort((a, b) => (b.points ?? -999) - (a.points ?? -999))
-      .slice(0, 6)
       .map((player) => ({
         ...player,
         status: player.status || "Saisonpunkte"
@@ -437,7 +435,7 @@
 
     const state = document.createElement("div");
     state.className = "communio-advisor__live-state";
-    state.textContent = isLive ? "Spiel laeuft" : "Kader-Vorschau";
+    state.textContent = isLive ? "Spiel läuft" : "Kader-Vorschau";
 
     header.appendChild(title);
     header.appendChild(state);
@@ -575,14 +573,14 @@
     }
 
     const diffMs = target.getTime() - Date.now();
-    const label = matchday.label || this.config.nextMatchdayLabel || "Naechster Spieltag";
+    const label = matchday.label || this.config.nextMatchdayLabel || "Nächster Spieltag";
 
     if (diffMs <= 0 && diffMs > -3 * 60 * 60 * 1000) {
-      return { label, value: "laeuft jetzt" };
+      return { label, value: "läuft jetzt" };
     }
 
     if (diffMs <= 0) {
-      return { label, value: "heute pruefen" };
+      return { label, value: "heute prüfen" };
     }
 
     const totalMinutes = Math.ceil(diffMs / 60000);
@@ -723,7 +721,7 @@
           return item.text;
         }
 
-        const price = item.price ? ` fuer ${this.formatCurrencyText(item.price)}` : "";
+        const price = item.price ? ` für ${this.formatCurrencyText(item.price)}` : "";
         const direction = item.from || item.to
           ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
           : `zu ${item.club || "unbekannt"}`;
@@ -829,11 +827,11 @@
 
     const label = document.createElement("div");
     label.className = "communio-advisor__card-label";
-    label.textContent = "Geruechtekueche";
+    label.textContent = "Gerüchteküche";
 
     const headline = document.createElement("div");
     headline.className = "communio-advisor__rumor-headline";
-    headline.textContent = rumorKitchen?.headline || "Patron Co prueft Last-Minute-Deal";
+    headline.textContent = rumorKitchen?.headline || "Patron Co prüft Last-Minute-Deal";
 
     const body = document.createElement("div");
     body.className = "communio-advisor__card-reason";
