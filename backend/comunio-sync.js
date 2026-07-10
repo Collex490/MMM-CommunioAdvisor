@@ -1,4 +1,4 @@
-const fs = require("fs/promises");
+﻿const fs = require("fs/promises");
 const fsSync = require("fs");
 const path = require("path");
 const dotenv = require("dotenv");
@@ -689,10 +689,10 @@ function mapTransferTicker(json) {
           ? `${from ? "von " + from : ""}${from && to ? " " : ""}${to ? "zu " + to : ""}`.trim()
           : fallbackAction;
         const text = fallbackAction === "verkauft"
-          ? `verkauft: ${player} von ${from || to || "unbekannt"} an Computer${price ? ` fuer ${price}` : ""}`
+          ? `verkauft: ${player} von ${from || to || "unbekannt"} an Computer${price ? ` für ${price}` : ""}`
           : fallbackAction === "gekauft"
-            ? `gekauft: ${player} von Computer zu ${to || from || "unbekannt"}${price ? ` fuer ${price}` : ""}`
-            : `Transfer: ${player} ${action}${price ? ` fuer ${price}` : ""}`;
+            ? `gekauft: ${player} von Computer zu ${to || from || "unbekannt"}${price ? ` für ${price}` : ""}`
+            : `Transfer: ${player} ${action}${price ? ` für ${price}` : ""}`;
 
         structuredTransfers.push({
           action: fallbackAction,
@@ -1292,14 +1292,14 @@ function buildAnalysis(raw, generatedLineupImage) {
           }
         : {
             title: "Keine Kaufempfehlung",
-            reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurueckkaufen; Budget halten und auf bessere Chancen warten.",
+            reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurückkaufen; Budget halten und auf bessere Chancen warten.",
             confidence: "hoch"
           },
       sell: lowestPointPlayer
         ? {
             player: lowestPointPlayer.name,
             title: "Verkaufskandidat",
-            reason: `${lowestPointPlayer.points !== undefined ? `${lowestPointPlayer.points} Punkte sprechen fuer genaues Pruefen. ` : ""}Bei gutem Angebot als Tauschmasse nutzen, wenn ein klarer Starter auf dem Markt liegt.`,
+            reason: `${lowestPointPlayer.points !== undefined ? `${lowestPointPlayer.points} Punkte sprechen für genaues Prüfen. ` : ""}Bei gutem Angebot als Tauschmasse nutzen, wenn ein klarer Starter auf dem Markt liegt.`,
             confidence: "mittel"
           }
         : undefined,
@@ -1307,14 +1307,14 @@ function buildAnalysis(raw, generatedLineupImage) {
         ? {
             player: roleRisk.name,
             title: "Startelf-Risiko",
-            reason: "Rolle, Punkteausbeute und Minuten vor dem naechsten Spieltag beobachten; bei unsicherem Startelfstatus nicht blind halten.",
+            reason: "Rolle, Punkteausbeute und Minuten vor dem nächsten Spieltag beobachten; bei unsicherem Startelfstatus nicht blind halten.",
             confidence: "mittel"
           }
         : undefined,
       budget: {
         title: budget ? "Budget gezielt einsetzen" : "Budget weiter per Telegram sichern",
         reason: budget
-          ? `${budget} auf dem Konto: fuer einen Premium-Deal bieten, aber einen Puffer fuer Nachkaeufe und Spieltagsreaktionen behalten.`
+          ? `${budget} auf dem Konto: für einen Premium-Deal bieten, aber einen Puffer für Nachkäufe und Spieltagsreaktionen behalten.`
           : "Kontostand wurde in den API-Daten noch nicht sicher gefunden; Telegram-/Budget-Screenshot bleibt Backup.",
         confidence: budget ? "hoch" : "mittel"
       }
@@ -1333,14 +1333,14 @@ function buildAnalysis(raw, generatedLineupImage) {
     })),
     lineupImage: generatedLineupImage || undefined,
     squadInsights: {
-      keep: squadPlayers.slice(0, 2).map((player) => `${player.name} im Kader behalten und Rolle pruefen`),
-      sell: squadPlayers.slice(-2).map((player) => `${player.name} als moeglichen Tausch-/Verkaufskandidaten pruefen`),
+      keep: squadPlayers.slice(0, 2).map((player) => `${player.name} im Kader behalten und Rolle prüfen`),
+      sell: squadPlayers.slice(-2).map((player) => `${player.name} als möglichen Tausch-/Verkaufskandidaten prüfen`),
       watch: marketCandidates.slice(0, 2).map((item) => `${item.player} auf dem Markt beobachten`)
     },
     matchdays: [],
     rumorKitchen: {
       headline: "Pasta La Vista FC zapft die Comunio-Leitung an",
-      body: `Patron Co sieht ${ownTeam?.totalPoints || "neue"} Punkte im Datenraum, waehrend Gattuso Transfermarkt und Kaderliste enger zusammenrueckt.`
+      body: `Patron Co sieht ${ownTeam?.totalPoints || "neue"} Punkte im Datenraum, während Gattuso Transfermarkt und Kaderliste enger zusammenrückt.`
     },
     generatedAt: raw.generatedAt || new Date().toISOString()
   };
@@ -1356,7 +1356,7 @@ async function main() {
   await fs.writeFile(dataPath, JSON.stringify(merged, null, 2), "utf8");
 
   console.log(`Comunio-API-Rohdaten gespeichert: ${rawPath}`);
-  console.log(`Comunio-API-Daten in latest.json uebernommen: ${dataPath}`);
+  console.log(`Comunio-API-Daten in latest.json übernommen: ${dataPath}`);
   if (generatedLineupImage?.url) {
     console.log(`Aufstellungsbild generiert: ${generatedLineupImage.url}`);
   }

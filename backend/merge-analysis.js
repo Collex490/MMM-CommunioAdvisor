@@ -1,4 +1,4 @@
-const fs = require("fs/promises");
+﻿const fs = require("fs/promises");
 const { normalizeAnalysis } = require("./normalize-analysis");
 
 function hasUsefulRecommendation(recommendation) {
@@ -41,8 +41,8 @@ function hasUsefulRecommendation(recommendation) {
     "per api geladen",
     "chatgpt-analyse",
     "auf dem markt sichtbar",
-    "preis pruefen",
-    "preis prÃ¼fen"
+    "preis prüfen",
+    "preis prüfen"
   ];
 
   if (blockedPhrases.some((phrase) => text.includes(phrase))) {
@@ -94,7 +94,7 @@ function recommendationFromBudgetStatus(budgetStatus) {
 
   return {
     title: "Budget gezielt einsetzen",
-    reason: `Mit ${budgetStatus.amount} nur selektiv bieten und Reserve fuer Nachkaeufe halten.`,
+    reason: `Mit ${budgetStatus.amount} nur selektiv bieten und Reserve für Nachkäufe halten.`,
     confidence: "hoch"
   };
 }

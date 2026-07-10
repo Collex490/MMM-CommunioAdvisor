@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const fs = require("fs/promises");
 const path = require("path");
@@ -63,17 +63,17 @@ function buildHelpText() {
   return [
     "ComunioAdvisor Modi:",
     "/auto - Screenshot automatisch erkennen",
-    "/transfermarkt - Marktangebote fuer Kaufempfehlung auswerten",
-    "/transfers - echte Kaeufe/Verkaeufe der Liga fuer Banner und Transfernews sammeln",
+    "/transfermarkt - Marktangebote für Kaufempfehlung auswerten",
+    "/transfers - echte Käufe/Verkäufe der Liga für Banner und Transfernews sammeln",
     "/tabelle - Liga-Tabelle mit Punkten speichern",
     "/aufstellung - offizielles Aufstellungsbild speichern",
     "/budget - Kontostand/Budget auswerten",
-    "/kader - Kader fuer Halten/Verkaufen/Beobachten auswerten",
+    "/kader - Kader für Halten/Verkaufen/Beobachten auswerten",
     "/kapitaen Name - Kapitaen oben rechts setzen",
-    "/logo - naechstes Bild als Vereinslogo speichern",
+    "/logo - nächstes Bild als Vereinslogo speichern",
     "/status - letzte Analyse anzeigen",
     "",
-    "Tipp: Modus setzen und danach 1 bis 3 Screenshots schicken. Der Bot sammelt passende Daten und aktualisiert die Tagesuebersicht."
+    "Tipp: Modus setzen und danach 1 bis 3 Screenshots schicken. Der Bot sammelt passende Daten und aktualisiert die Tagesübersicht."
   ].join("\n");
 }
 
@@ -170,7 +170,7 @@ bot.onText(/\/kapitaen(?:\s+(.+))?/, async (message, match) => {
 bot.on("photo", async (message) => {
   try {
     if (allowedChatId && String(message.chat.id) !== String(allowedChatId)) {
-      await bot.sendMessage(message.chat.id, "Dieser Chat ist fuer den Comunio Advisor nicht freigegeben.");
+      await bot.sendMessage(message.chat.id, "Dieser Chat ist für den Comunio Advisor nicht freigegeben.");
       return;
     }
 
@@ -179,7 +179,7 @@ bot.on("photo", async (message) => {
     if (captionMode) {
       setChatMode(message.chat.id, captionMode);
     }
-    await bot.sendMessage(message.chat.id, `Screenshot erhalten. Modus: ${modeLabels[chatMode]}. Ich analysiere und fuege es zur Tagesuebersicht hinzu...`);
+    await bot.sendMessage(message.chat.id, `Screenshot erhalten. Modus: ${modeLabels[chatMode]}. Ich analysiere und füge es zur Tagesübersicht hinzu...`);
 
     const photo = message.photo[message.photo.length - 1];
     await fs.mkdir(uploadDir, { recursive: true });
@@ -247,7 +247,7 @@ bot.on("photo", async (message) => {
 bot.on("document", async (message) => {
   try {
     if (allowedChatId && String(message.chat.id) !== String(allowedChatId)) {
-      await bot.sendMessage(message.chat.id, "Dieser Chat ist fuer den Comunio Advisor nicht freigegeben.");
+      await bot.sendMessage(message.chat.id, "Dieser Chat ist für den Comunio Advisor nicht freigegeben.");
       return;
     }
 

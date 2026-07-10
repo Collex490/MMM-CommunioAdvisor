@@ -1,4 +1,4 @@
-function firstItem(value) {
+﻿function firstItem(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
@@ -24,7 +24,7 @@ function normalizeRecommendation(value, fallbackTitle) {
   return {
     player: item.player,
     title: item.title || item.assessment || fallbackTitle,
-    reason: item.reason || item.detail || item.assessment || "Keine Begruendung erkannt.",
+    reason: item.reason || item.detail || item.assessment || "Keine Begründung erkannt.",
     confidence: item.confidence || "mittel"
   };
 }
@@ -35,19 +35,19 @@ function normalizeRumorKitchen(value) {
   if (typeof item === "string") {
     return {
       headline: item,
-      body: "Die Geruechtekueche brodelt weiter rund um Pasta La Vista FC."
+      body: "Die Gerüchteküche brodelt weiter rund um Pasta La Vista FC."
     };
   }
 
   if (!item || typeof item !== "object") {
     return {
-      headline: "Patron Co prueft den naechsten Transferzug",
+      headline: "Patron Co prüft den nächsten Transferzug",
       body: "In der Pasta-Zentrale wird weiter kalkuliert."
     };
   }
 
   return {
-    headline: item.headline || "Patron Co prueft den naechsten Transferzug",
+    headline: item.headline || "Patron Co prüft den nächsten Transferzug",
     body: item.body || item.detail || "In der Pasta-Zentrale wird weiter kalkuliert."
   };
 }
@@ -202,7 +202,7 @@ function recommendationFromInsight(text, fallbackTitle) {
     return null;
   }
 
-  const player = value.split(/:| wegen | bei | als | nur | fuer | für /i)[0].trim();
+  const player = value.split(/:| wegen | bei | als | nur | für | für /i)[0].trim();
   return {
     player: player || fallbackTitle,
     title: fallbackTitle,

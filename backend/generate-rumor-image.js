@@ -1,4 +1,4 @@
-const fs = require("fs/promises");
+﻿const fs = require("fs/promises");
 const path = require("path");
 const OpenAI = require("openai");
 
@@ -7,7 +7,7 @@ const client = new OpenAI({
 });
 
 async function generateRumorImage({ rumorKitchen, club, outputDir }) {
-  const headline = rumorKitchen?.headline || "Patron Co prueft Last-Minute-Deal";
+  const headline = rumorKitchen?.headline || "Patron Co prüft Last-Minute-Deal";
   const body = rumorKitchen?.body || "Gattuso fordert mehr Biss im Mittelfeld.";
   const clubName = club?.name || "Pasta La Vista FC";
 
