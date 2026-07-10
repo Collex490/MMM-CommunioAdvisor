@@ -701,7 +701,7 @@ function mapTransferTicker(json) {
           from: fallbackAction === "gekauft" ? "Computer" : from,
           to: fallbackAction === "verkauft" ? "Computer" : to,
           price,
-          text
+          text: cleanTickerText(text)
         });
       });
     });
@@ -724,11 +724,21 @@ function mapTransferTicker(json) {
     .filter((text) => isUsefulTransferPlayer(text))
     .map((text) => ({
       action: /verkauft|verkauf/i.test(text) ? "verkauft" : "gekauft",
-      player: text.replace(/\s+/g, " ").slice(0, 90),
+      player: cleanTickerText(text).slice(0, 90),
       club: "",
       price: ""
     }))
     .slice(0, 12);
+}
+
+function cleanTickerText(value) {
+  return String(value || "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function newsTimestamp(json) {
@@ -768,8 +778,19 @@ function collectNewsEntries(json) {
   return entries.length ? entries : [json];
 }
 
+function localDateKey(timestamp) {
+  if (!timestamp) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date(timestamp));
+}
+
 function newestTransferTicker(newsPages) {
-  return newsPages
+  const todayKey = localDateKey(Date.now());
+  const transferPages = newsPages
     .flatMap((json, pageIndex) => collectNewsEntries(json).map((entry, entryIndex) => ({
       json: entry,
       index: pageIndex * 1000 + entryIndex,
@@ -778,6 +799,13 @@ function newestTransferTicker(newsPages) {
     }))
     )
     .filter((page) => page.transfers.length)
+    .map((page) => ({
+      ...page,
+      dateKey: localDateKey(page.timestamp)
+    }));
+
+  const todayPages = transferPages.filter((page) => page.dateKey === todayKey);
+  return todayPages
     .sort((a, b) => (b.timestamp - a.timestamp) || (a.index - b.index))
     .flatMap((page) => page.transfers)
     .filter((item, index, list) => {
