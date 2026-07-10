@@ -10,7 +10,7 @@ Module.register("MMM-CommunioAdvisor", {
     showRumorImage: true,
     showSquadInsights: true,
     nextMatchdayAt: "",
-    nextMatchdayLabel: "Nächster Spieltag",
+    nextMatchdayLabel: "NÃ¤chster Spieltag",
     matchdays: [],
     showDebug: false
   },
@@ -258,12 +258,12 @@ Module.register("MMM-CommunioAdvisor", {
 
   formatCurrencyText(value) {
     const text = String(value || "").trim();
-    if (!text || /€|eur|offen|unbekannt|^-$/i.test(text)) {
+    if (!text || /â‚¬|eur|offen|unbekannt|^-$/i.test(text)) {
       return text;
     }
 
     return /^\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?$|^\d{4,}$/.test(text)
-      ? `${text} €`
+      ? `${text} â‚¬`
       : text;
   },
 
@@ -300,24 +300,33 @@ Module.register("MMM-CommunioAdvisor", {
       return teamName === clubName || team.isUserClub;
     });
     const budget = data.budgetStatus || {};
+    const budgetValue = budget.amount || budget.label || "offen";
     const ownTotalPoints = ownTeam?.totalPoints ?? ownTeam?.points;
     const gapStatus = this.getGapStatus(data.standings || [], ownTeam);
     const items = [
-      ["Budget", this.formatCurrencyText(budget.amount || budget.label || "offen")],
-      ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
-      ["Punkte", ownTotalPoints != null ? `${ownTotalPoints} P` : "-"],
-      [gapStatus.label, gapStatus.value]
+      { label: "Budget", value: this.formatCurrencyText(budgetValue), type: this.isNegativeMoney(budgetValue) ? "negative" : "budget" },
+      { label: "Platz", value: ownTeam?.rank ? `${ownTeam.rank}.` : "-" },
+      { label: "Punkte", value: ownTotalPoints != null ? `${ownTotalPoints} P` : "-" },
+      gapStatus
     ];
 
-    items.forEach(([label, value]) => {
+    items.forEach(({ label, value, type }) => {
       const item = document.createElement("div");
-      item.className = "communio-advisor__status-item";
+      item.className = `communio-advisor__status-item${type ? ` communio-advisor__status-item--${type}` : ""}`;
 
       const itemLabel = document.createElement("span");
       itemLabel.textContent = label;
 
       const itemValue = document.createElement("strong");
-      if (Array.isArray(value)) {
+      if (type === "gap" && Array.isArray(value)) {
+        itemValue.className = "communio-advisor__gap";
+        value.forEach((entry) => {
+          const chip = document.createElement("span");
+          chip.className = `communio-advisor__gap-chip communio-advisor__gap-chip--${entry.tone}`;
+          chip.textContent = entry.text;
+          itemValue.appendChild(chip);
+        });
+      } else if (Array.isArray(value)) {
         itemValue.className = "communio-advisor__status-multi";
         value.forEach((line) => {
           const lineNode = document.createElement("span");
@@ -336,15 +345,20 @@ Module.register("MMM-CommunioAdvisor", {
     return strip;
   },
 
+  isNegativeMoney(value) {
+    const parsed = Number(String(value || "").replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+    return Number.isFinite(parsed) && parsed < 0;
+  },
+
   getGapStatus(standings, ownTeam) {
     if (!ownTeam) {
-      return { label: "Tabellenlage", value: "-" };
+      return { label: "Lage", value: "-", type: "gap" };
     }
 
     const ownPoints = ownTeam.totalPoints ?? ownTeam.points;
     const ownRank = Number(ownTeam.rank);
     if (ownPoints == null || !Number.isFinite(ownRank)) {
-      return { label: "Tabellenlage", value: "-" };
+      return { label: "Lage", value: "-", type: "gap" };
     }
 
     const sorted = [...standings]
@@ -357,13 +371,14 @@ Module.register("MMM-CommunioAdvisor", {
       const chaser = sorted.find((team) => Number(team.rank) === 2);
       const chaserPoints = chaser?.totalPoints ?? chaser?.points;
       if (chaserPoints == null) {
-        return { label: "Vorsprung", value: "Spitze" };
+        return { label: "Lage", value: "Spitze", type: "gap" };
       }
 
       const gap = Math.max(0, Number(ownPoints) - Number(chaserPoints));
       return {
-        label: "Vorsprung",
-        value: gap > 0 ? `${gap} P auf Platz 2` : "Spitze"
+        label: "Lage",
+        type: "gap",
+        value: gap > 0 ? [{ tone: "good", text: `+${gap}` }] : "Spitze"
       };
     }
 
@@ -373,23 +388,23 @@ Module.register("MMM-CommunioAdvisor", {
     const chaserPoints = chaser?.totalPoints ?? chaser?.points;
 
     if (targetPoints == null) {
-      return { label: "Tabellenlage", value: "-" };
+      return { label: "Lage", value: "-", type: "gap" };
     }
 
     const leaderGap = leaderPoints == null ? null : Math.max(0, Number(leaderPoints) - Number(ownPoints));
     const frontGap = Math.max(0, Number(targetPoints) - Number(ownPoints));
     const rearGap = chaserPoints == null ? null : Math.max(0, Number(ownPoints) - Number(chaserPoints));
-    const rearText = rearGap == null ? "hinten frei" : `+${rearGap} P nach hinten`;
 
     return {
-      label: "Tabellenlage",
+      label: "Lage",
+      type: "gap",
       value: [
-        leaderGap == null ? "Spitze: -" : `Spitze: ${leaderGap} P`,
-        `Vorn: ${frontGap} P · ${rearText}`
+        { tone: "top", text: leaderGap == null ? "-" : `${leaderGap}` },
+        { tone: "bad", text: `${frontGap || leaderGap || "-"}` },
+        { tone: "good", text: rearGap == null ? "frei" : `${rearGap}` }
       ]
     };
   },
-
   buildLivePlayers(data) {
     const sourcePlayers = data.livePlayers || data.livePoints || [];
     const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
@@ -451,7 +466,7 @@ Module.register("MMM-CommunioAdvisor", {
       name.textContent = player.name || "Unbekannt";
 
       const meta = document.createElement("span");
-      meta.textContent = [player.position, player.club, player.status].filter(Boolean).join(" · ");
+      meta.textContent = [player.position, player.club, player.status].filter(Boolean).join(" Â· ");
 
       info.appendChild(name);
       if (meta.textContent) {
@@ -530,14 +545,14 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     const diffMs = target.getTime() - Date.now();
-    const label = matchday.label || this.config.nextMatchdayLabel || "Nächster Spieltag";
+    const label = matchday.label || this.config.nextMatchdayLabel || "NÃ¤chster Spieltag";
 
     if (diffMs <= 0 && diffMs > -3 * 60 * 60 * 1000) {
-      return { label, value: "läuft jetzt" };
+      return { label, value: "lÃ¤uft jetzt" };
     }
 
     if (diffMs <= 0) {
-      return { label, value: "heute prüfen" };
+      return { label, value: "heute prÃ¼fen" };
     }
 
     const totalMinutes = Math.ceil(diffMs / 60000);
@@ -675,10 +690,10 @@ Module.register("MMM-CommunioAdvisor", {
       .slice(0, 10)
       .map((item) => {
         if (item.text) {
-          return item.text.replace(/\bfuer\b/g, "für");
+          return item.text.replace(/\bfuer\b/g, "fÃ¼r");
         }
 
-        const price = item.price ? ` für ${this.formatCurrencyText(item.price)}` : "";
+        const price = item.price ? ` fÃ¼r ${this.formatCurrencyText(item.price)}` : "";
         const direction = item.from || item.to
           ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
           : `zu ${item.club || "unbekannt"}`;
@@ -784,11 +799,11 @@ Module.register("MMM-CommunioAdvisor", {
 
     const label = document.createElement("div");
     label.className = "communio-advisor__card-label";
-    label.textContent = "Gerüchteküche";
+    label.textContent = "GerÃ¼chtekÃ¼che";
 
     const headline = document.createElement("div");
     headline.className = "communio-advisor__rumor-headline";
-    headline.textContent = rumorKitchen?.headline || "Patron Co prüft Last-Minute-Deal";
+    headline.textContent = rumorKitchen?.headline || "Patron Co prÃ¼ft Last-Minute-Deal";
 
     const body = document.createElement("div");
     body.className = "communio-advisor__card-reason";

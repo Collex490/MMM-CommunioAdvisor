@@ -196,7 +196,7 @@ body {
 
 .ipad-advisor__status-item {
   min-height: 52px;
-  padding: 7px 8px;
+  padding: 7px 7px;
   background: var(--panel-strong);
   border: 1px solid rgba(217, 170, 63, 0.25);
   border-radius: 12px;
@@ -215,10 +215,21 @@ body {
   display: block;
   margin-top: 6px;
   overflow: hidden;
-  font-size: clamp(17px, 1.9vw, 25px);
+  font-size: clamp(16px, 1.75vw, 24px);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ipad-advisor__status-item--budget strong {
+  font-size: clamp(14px, 1.45vw, 19px);
+  letter-spacing: -0.01em;
+}
+
+.ipad-advisor__status-item--negative strong {
+  color: #ff6b6b;
+  font-size: clamp(14px, 1.45vw, 19px);
+  letter-spacing: -0.01em;
 }
 
 .ipad-advisor__status-multi {
@@ -234,6 +245,60 @@ body {
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ipad-advisor__gap {
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px !important;
+  white-space: nowrap;
+}
+
+.ipad-advisor__gap-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 999px;
+  font-size: clamp(12px, 1.35vw, 17px);
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.ipad-advisor__gap-chip::before {
+  font-size: 0.92em;
+  line-height: 1;
+}
+
+.ipad-advisor__gap-chip--top {
+  color: #17130a;
+  background: rgba(217, 170, 63, 0.9);
+}
+
+.ipad-advisor__gap-chip--top::before {
+  content: "1.";
+}
+
+.ipad-advisor__gap-chip--bad {
+  color: #ffd6d6;
+  background: rgba(205, 63, 63, 0.82);
+}
+
+.ipad-advisor__gap-chip--bad::before {
+  content: "\25B2";
+}
+
+.ipad-advisor__gap-chip--good {
+  color: #e9ffe9;
+  background: rgba(49, 161, 64, 0.86);
+}
+
+.ipad-advisor__gap-chip--good::before {
+  content: "\25BC";
 }
 
 .ipad-advisor__side {

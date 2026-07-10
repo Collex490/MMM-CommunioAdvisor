@@ -280,8 +280,8 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-width: 48px;
-  padding: 4px 7px;
+  min-width: 40px;
+  padding: 4px 6px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 900;
@@ -290,6 +290,15 @@
 
 .communio-advisor__gap-chip::before {
   font-size: 0.86em;
+}
+
+.communio-advisor__gap-chip--top {
+  color: #17130a;
+  background: rgba(217, 170, 63, 0.9);
+}
+
+.communio-advisor__gap-chip--top::before {
+  content: "1.";
 }
 
 .communio-advisor__gap-chip--bad {

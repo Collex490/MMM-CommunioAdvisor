@@ -116,17 +116,23 @@
     const points = firstValue(ownTeam?.totalPoints, ownTeam?.points);
     const tableStatus = getTableStatus(data.standings || [], ownTeam);
     const items = [
-      ["Budget", firstValue(budget.amount, budget.label, "offen")],
-      ["Platz", ownTeam?.rank ? `${ownTeam.rank}.` : "-"],
-      ["Punkte", points ? `${points} P` : "-"],
-      [tableStatus.label, tableStatus.value]
+      { label: "Budget", value: formatMoney(firstValue(budget.amount, budget.label, "offen")), type: isNegativeMoney(firstValue(budget.amount, budget.label, "offen")) ? "negative" : "budget" },
+      { label: "Platz", value: ownTeam?.rank ? `${ownTeam.rank}.` : "-" },
+      { label: "Punkte", value: points ? `${points} P` : "-" },
+      tableStatus
     ];
 
     const node = el("section", "ipad-advisor__status");
-    items.forEach(([label, value]) => {
-      const item = el("div", "ipad-advisor__status-item");
+    items.forEach(({ label, value, type }) => {
+      const item = el("div", `ipad-advisor__status-item${type ? ` ipad-advisor__status-item--${type}` : ""}`);
       item.appendChild(el("span", "", label));
-      if (Array.isArray(value)) {
+      if (type === "gap" && Array.isArray(value)) {
+        const gap = el("strong", "ipad-advisor__gap");
+        value.forEach((entry) => {
+          gap.appendChild(el("em", `ipad-advisor__gap-chip ipad-advisor__gap-chip--${entry.tone}`, entry.text));
+        });
+        item.appendChild(gap);
+      } else if (Array.isArray(value)) {
         const multi = el("strong", "ipad-advisor__status-multi");
         value.forEach((line) => multi.appendChild(el("em", "", line)));
         item.appendChild(multi);
@@ -138,13 +144,24 @@
     return node;
   }
 
+  function formatMoney(value) {
+    if (!value || value === "offen" || value === "-") return value || "-";
+    const text = String(value).trim();
+    return text.includes("\u20ac") ? text : `${text} \u20ac`;
+  }
+
+  function isNegativeMoney(value) {
+    const parsed = Number(String(value || "").replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+    return Number.isFinite(parsed) && parsed < 0;
+  }
+
   function getTableStatus(standings, ownTeam) {
-    if (!ownTeam) return { label: "Tabellenlage", value: "-" };
+    if (!ownTeam) return { label: "Lage", value: "-", type: "gap" };
 
     const ownPoints = Number(firstValue(ownTeam.totalPoints, ownTeam.points));
     const ownRank = Number(ownTeam.rank);
     if (!Number.isFinite(ownPoints) || !Number.isFinite(ownRank)) {
-      return { label: "Tabellenlage", value: "-" };
+      return { label: "Lage", value: "-", type: "gap" };
     }
 
     const sorted = [...standings]
@@ -154,9 +171,13 @@
     if (ownRank === 1) {
       const chaser = sorted.find((team) => Number(team.rank) === 2);
       const chaserPoints = Number(firstValue(chaser?.totalPoints, chaser?.points));
-      if (!Number.isFinite(chaserPoints)) return { label: "Vorsprung", value: "Spitze" };
+      if (!Number.isFinite(chaserPoints)) return { label: "Lage", value: "Spitze", type: "gap" };
       const gap = Math.max(0, ownPoints - chaserPoints);
-      return { label: "Vorsprung", value: gap > 0 ? `${gap} P auf Platz 2` : "Spitze" };
+      return {
+        label: "Lage",
+        type: "gap",
+        value: gap > 0 ? [{ tone: "good", text: `+${gap}` }] : "Spitze"
+      };
     }
 
     const leader = sorted.find((team) => Number(team.rank) === 1);
@@ -171,10 +192,12 @@
     const rearGap = Number.isFinite(rearPoints) ? Math.max(0, ownPoints - rearPoints) : null;
 
     return {
-      label: "Tabellenlage",
+      label: "Lage",
+      type: "gap",
       value: [
-        leaderGap === null ? "Spitze: -" : `Spitze: ${leaderGap} P`,
-        `${frontGap === null ? "Vorn: -" : `Vorn: ${frontGap} P`} · ${rearGap === null ? "hinten frei" : `+${rearGap} P nach hinten`}`
+        { tone: "top", text: leaderGap === null ? "-" : `${leaderGap}` },
+        { tone: "bad", text: `${frontGap ?? leaderGap ?? "-"}` },
+        { tone: "good", text: rearGap === null ? "frei" : `${rearGap}` }
       ]
     };
   }
@@ -190,8 +213,8 @@
     const text = transfers
       .slice(0, 12)
       .map((item) => {
-        if (item.text) return item.text.replace(/\bfuer\b/g, "für");
-        const price = item.price ? ` für ${item.price}` : "";
+        if (item.text) return item.text.replace(/\bfuer\b/g, "fÃƒÂ¼r");
+        const price = item.price ? ` fÃƒÂ¼r ${item.price}` : "";
         const direction = item.from || item.to
           ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
           : `zu ${item.club || "unbekannt"}`;
