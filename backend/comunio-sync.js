@@ -999,9 +999,12 @@ function mapLivePlayers(raw) {
   ];
   const livePages = raw.pages.filter((page) => {
     if (page.status !== 200 || !page.json) return false;
-    if (!page.url.includes("/standings")) return false;
     if (page.url.includes("period=total")) return false;
-    return page.url.includes("period=") || page.url.includes("live");
+    return (
+      (page.url.includes("/standings") && (page.url.includes("period=") || page.url.includes("live")))
+      || page.url.includes("/lineup")
+      || page.url.includes("lineup.json")
+    );
   });
 
   function livePointsFrom(item, pageIsLive) {
@@ -1031,6 +1034,7 @@ function mapLivePlayers(raw) {
     .forEach((page) => {
       const pageIsLive = normalizeText(firstValue(page.json?.id, page.json?.key, page.json?.period)) === "live"
         || page.url.includes("period=live");
+      const pageCanContainLivePlayers = pageIsLive || page.url.includes("/lineup") || page.url.includes("lineup.json");
       walk(page.json, (item) => {
         if (!item || typeof item !== "object") return;
 
@@ -1047,7 +1051,7 @@ function mapLivePlayers(raw) {
             liveStateFrom(playerObject)
           );
 
-          if (livePoints === undefined && !liveState) return;
+          if (!pageCanContainLivePlayers || (livePoints === undefined && !liveState)) return;
 
           livePlayers.set(normalizeText(name), {
             name,
