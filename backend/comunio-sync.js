@@ -839,7 +839,7 @@ function findBudget(json) {
 }
 
 function isTrustedBudgetUrl(url) {
-  return /login\/state|members|account|profile|user/i.test(url || "")
+  return /\/api\/?(?:[?_].*)?$|login\/state|members|account|profile|user/i.test(url || "")
     && !/standings|offers|news|market|squad|lineup|matchdays/i.test(url || "");
 }
 
@@ -970,7 +970,9 @@ function lineupPlayersFromRaw(raw) {
 
 function mapLivePlayers(raw) {
   const squadPlayers = mapPlayers(pageByUrl(raw, "/squad"));
+  const lineupPlayers = lineupPlayersFromRaw(raw);
   const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
+  lineupPlayers.forEach((player) => ownPlayerNames.add(normalizeText(player.name)));
   const livePlayers = new Map();
   const livePointKeys = [
     "livepoints",
@@ -980,7 +982,12 @@ function mapLivePlayers(raw) {
     "currentmatchpoints",
     "current_match_points",
     "currentlivepoints",
-    "current_live_points"
+    "current_live_points",
+    "matchdaypoints",
+    "matchday_points",
+    "lastpoints",
+    "last_points",
+    "daypoints"
   ];
   const liveStateKeys = [
     "livestatus",
@@ -1020,6 +1027,40 @@ function mapLivePlayers(raw) {
     return ["live", "running", "playing", "active", "inprogress", "in_progress"].includes(text);
   }
 
+  function isOwnTeamItem(item) {
+    const userId = String(env("COMMUNIO_USER_ID", ""));
+    const embeddedUser = item?._embedded?.user || item?.user || item?._embedded?.manager || {};
+    const candidateId = String(firstValue(
+      embeddedUser.id,
+      item.userId,
+      item.userid,
+      item.managerId,
+      ""
+    ));
+    const candidateName = normalizeText(firstValue(
+      embeddedUser.firstName,
+      embeddedUser.name,
+      item.firstName,
+      item.name,
+      objectName(item),
+      ""
+    ));
+
+    return (userId && candidateId === userId) || candidateName === "pasta la vista fc";
+  }
+
+  function ownTeamRoots(page) {
+    if (!page.url.includes("/standings")) return [page.json];
+
+    const roots = [];
+    walk(page.json, (item) => {
+      if (item && typeof item === "object" && isOwnTeamItem(item)) {
+        roots.push(item);
+      }
+    });
+    return roots.length ? roots : [page.json];
+  }
+
   function playerCandidates(item) {
     const candidates = [item];
     playerObjectKeys.forEach((key) => {
@@ -1038,32 +1079,40 @@ function mapLivePlayers(raw) {
       const pageIsLive = normalizeText(firstValue(page.json?.id, page.json?.key, page.json?.period)) === "live"
         || page.url.includes("period=live");
       const pageCanContainLivePlayers = pageIsLive || page.url.includes("/lineup") || page.url.includes("lineup.json");
-      walk(page.json, (item) => {
-        if (!item || typeof item !== "object") return;
+      ownTeamRoots(page).forEach((root) => {
+        const ownTeamContext = root !== page.json || page.url.includes("/lineup") || page.url.includes("lineup.json");
+        walk(root, (item) => {
+          if (!item || typeof item !== "object") return;
 
-        playerCandidates(item).forEach((playerObject) => {
-          const name = objectName(playerObject);
-          if (!name || !ownPlayerNames.has(normalizeText(name))) return;
+          playerCandidates(item).forEach((playerObject) => {
+            const name = objectName(playerObject);
+            const normalizedName = normalizeText(name);
+            if (!name) return;
 
-          const livePoints = firstValue(
-            livePointsFrom(playerObject, pageIsLive),
-            playerObject === item ? livePointsFrom(item, pageIsLive) : undefined
-          );
-          const liveState = firstValue(
-            liveStateFrom(playerObject),
-            playerObject === item ? liveStateFrom(item) : undefined
-          );
+            const photoUrl = playerPhotoUrl({ raw: playerObject });
+            const isKnownOwnPlayer = ownPlayerNames.has(normalizedName);
+            if (!isKnownOwnPlayer && !(ownTeamContext && photoUrl)) return;
 
-          if (!pageCanContainLivePlayers || livePoints === undefined) return;
-          if (liveState && !isActiveLiveState(liveState)) return;
+            const livePoints = firstValue(
+              livePointsFrom(playerObject, pageIsLive),
+              playerObject === item ? livePointsFrom(item, pageIsLive) : undefined
+            );
+            const liveState = firstValue(
+              liveStateFrom(playerObject),
+              playerObject === item ? liveStateFrom(item) : undefined
+            );
 
-          livePlayers.set(normalizeText(name), {
-            name,
-            position: firstValue(item.position, item.type, item.role, playerObject.position, playerObject.type, playerObject.role, ""),
-            club: firstValue(item.clubName, item.teamName, playerObject.clubName, playerObject.teamName, ""),
-            livePoints,
-            status: String(firstValue(liveState, pageIsLive ? "live" : "")),
-            photoUrl: playerPhotoUrl({ raw: playerObject })
+            if (!pageCanContainLivePlayers || livePoints === undefined) return;
+            if (liveState && !isActiveLiveState(liveState) && !pageIsLive) return;
+
+            livePlayers.set(normalizedName, {
+              name,
+              position: firstValue(item.position, item.type, item.role, playerObject.position, playerObject.type, playerObject.role, ""),
+              club: firstValue(item.clubName, item.teamName, playerObject.clubName, playerObject.teamName, ""),
+              livePoints,
+              status: String(firstValue(liveState, pageIsLive ? "Spieltag" : "")),
+              photoUrl
+            });
           });
         });
       });
