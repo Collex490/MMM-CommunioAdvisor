@@ -1,0 +1,475 @@
+:root {
+  --gold: #d9aa3f;
+  --gold-soft: rgba(217, 170, 63, 0.16);
+  --bg: #050608;
+  --panel: rgba(255, 255, 255, 0.075);
+  --panel-strong: rgba(217, 170, 63, 0.13);
+  --border: rgba(217, 170, 63, 0.32);
+  --text: rgba(255, 255, 255, 0.94);
+  --muted: rgba(255, 255, 255, 0.64);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: radial-gradient(circle at top left, rgba(217, 170, 63, 0.14), transparent 32rem), var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+body {
+  padding: max(5px, env(safe-area-inset-top)) max(7px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(7px, env(safe-area-inset-left));
+}
+
+.ipad-advisor {
+  width: min(1360px, 100%);
+  margin: 0 auto;
+}
+
+.ipad-advisor__loading,
+.ipad-advisor__error {
+  display: grid;
+  min-height: 70vh;
+  place-items: center;
+  color: var(--gold);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.ipad-advisor__shell {
+  display: grid;
+  gap: 6px;
+}
+
+.ipad-advisor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 12px;
+  background: linear-gradient(135deg, rgba(12, 13, 16, 0.94), rgba(25, 21, 12, 0.94));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.ipad-advisor__league,
+.ipad-advisor__label,
+.ipad-advisor__footer {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ipad-advisor__club {
+  margin-top: 3px;
+  font-size: clamp(26px, 3.1vw, 38px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.ipad-advisor__motto {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ipad-advisor__captain {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  color: #111;
+  background: var(--gold);
+  border-radius: 9px;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.ipad-advisor__ticker {
+  position: relative;
+  display: grid;
+  grid-template-columns: 165px minmax(0, 1fr);
+  min-height: 30px;
+  overflow: hidden;
+  background: rgba(217, 170, 63, 0.11);
+  border: 1px solid rgba(217, 170, 63, 0.22);
+  border-radius: 9px;
+}
+
+.ipad-advisor__ticker-label {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: #111;
+  background: var(--gold);
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ipad-advisor__ticker-track {
+  position: relative;
+  z-index: 1;
+  min-width: max-content;
+  padding-left: 34px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 30px;
+  white-space: nowrap;
+  animation: ticker 36s linear infinite;
+}
+
+.ipad-advisor__top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(370px, 0.92fr);
+  gap: 8px;
+}
+
+.ipad-advisor__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ipad-advisor__card,
+.ipad-advisor__lineup,
+.ipad-advisor__standings,
+.ipad-advisor__squad,
+.ipad-advisor__rumor {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid var(--gold);
+  border-radius: 12px;
+}
+
+.ipad-advisor__card {
+  min-height: 104px;
+  padding: 9px 10px;
+}
+
+.ipad-advisor__card-title,
+.ipad-advisor__rumor-title {
+  margin-top: 6px;
+  font-size: clamp(19px, 1.8vw, 25px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.ipad-advisor__card-text,
+.ipad-advisor__rumor-text {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.18;
+}
+
+.ipad-advisor__meta {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ipad-advisor__status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ipad-advisor__status-item {
+  min-height: 52px;
+  padding: 7px 7px;
+  background: var(--panel-strong);
+  border: 1px solid rgba(217, 170, 63, 0.25);
+  border-radius: 12px;
+}
+
+.ipad-advisor__status-item span {
+  display: block;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ipad-advisor__status-item strong {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: clamp(16px, 1.75vw, 24px);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipad-advisor__status-item--budget strong {
+  font-size: clamp(14px, 1.45vw, 19px);
+  letter-spacing: -0.01em;
+}
+
+.ipad-advisor__status-multi {
+  font-size: 12px;
+  line-height: 1.18;
+  white-space: normal;
+}
+
+.ipad-advisor__status-multi em {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipad-advisor__gap {
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px !important;
+  white-space: nowrap;
+}
+
+.ipad-advisor__gap-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 999px;
+  font-size: clamp(12px, 1.35vw, 17px);
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.ipad-advisor__gap-chip::before {
+  font-size: 0.92em;
+  line-height: 1;
+}
+
+.ipad-advisor__gap-chip--bad {
+  color: #ffd6d6;
+  background: rgba(205, 63, 63, 0.82);
+}
+
+.ipad-advisor__gap-chip--bad::before {
+  content: "\25B2";
+}
+
+.ipad-advisor__gap-chip--good {
+  color: #e9ffe9;
+  background: rgba(49, 161, 64, 0.86);
+}
+
+.ipad-advisor__gap-chip--good::before {
+  content: "\25BC";
+}
+
+.ipad-advisor__side {
+  display: grid;
+  gap: 8px;
+}
+
+.ipad-advisor__lineup,
+.ipad-advisor__standings,
+.ipad-advisor__squad,
+.ipad-advisor__rumor {
+  padding: 9px 11px;
+}
+
+.ipad-advisor__lineup-image {
+  display: block;
+  width: 100%;
+  height: min(21vh, 220px);
+  margin-top: 7px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.24);
+  border-radius: 10px;
+}
+
+.ipad-advisor__standing-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.045);
+  border-radius: 9px;
+}
+
+.ipad-advisor__standing-row--own {
+  background: rgba(217, 170, 63, 0.18);
+  border: 1px solid rgba(217, 170, 63, 0.3);
+}
+
+.ipad-advisor__rank {
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.ipad-advisor__team-name {
+  overflow: hidden;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipad-advisor__market {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+}
+
+.ipad-advisor__points {
+  display: flex;
+  gap: 6px;
+}
+
+.ipad-advisor__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.ipad-advisor__pill--matchday {
+  color: #155f1b;
+  background: #f4fff2;
+  border: 1px solid rgba(73, 199, 71, 0.7);
+}
+
+.ipad-advisor__pill--total {
+  color: #fff;
+  background: #2f9a36;
+  border: 1px solid rgba(87, 213, 91, 0.45);
+}
+
+.ipad-advisor__squad-row {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 9px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.ipad-advisor__squad-row span {
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.ipad-advisor__squad-row strong {
+  color: var(--text);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+
+.ipad-advisor__rumor {
+  background: linear-gradient(135deg, var(--gold-soft), rgba(255, 255, 255, 0.055));
+}
+
+.ipad-advisor__footer {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.ipad-advisor__rumor {
+  min-height: 86px;
+}
+
+.ipad-advisor__bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.ipad-advisor__bottom-grid .ipad-advisor__squad,
+.ipad-advisor__bottom-grid .ipad-advisor__rumor {
+  min-height: 108px;
+}
+
+.ipad-advisor__empty {
+  margin-top: 10px;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (orientation: portrait), (max-width: 900px) {
+  .ipad-advisor__top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ipad-advisor__lineup-image {
+    height: min(36vh, 420px);
+  }
+
+  .ipad-advisor__bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ipad-advisor__squad-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 10px;
+  }
+
+  .ipad-advisor__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ipad-advisor__cards,
+  .ipad-advisor__status {
+    grid-template-columns: 1fr;
+  }
+
+  .ipad-advisor__ticker {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+}
