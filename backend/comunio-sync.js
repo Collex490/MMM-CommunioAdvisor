@@ -61,7 +61,7 @@ function formatMoney(value) {
     ? Math.round(value).toLocaleString("de-DE")
     : String(value).trim();
   if (!formatted) return "";
-  return /€|eur/i.test(formatted) ? formatted : `${formatted} €`;
+  return /\u20ac|eur/i.test(formatted) ? formatted : `${formatted} \u20ac`;
 }
 
 function firstValue(...values) {
@@ -246,6 +246,8 @@ async function fetchJson(url, options = {}) {
       "user-agent": "Mozilla/5.0 (X11; Linux armv7l) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 MMM-CommunioAdvisor/0.1",
       "accept-language": "de-DE,de;q=0.9,en;q=0.7",
       accept: "application/json, text/plain, */*",
+      "cache-control": "no-cache",
+      pragma: "no-cache",
       ...(options.headers || {})
     }
   });
@@ -348,6 +350,11 @@ function configuredUrls(apiBase) {
   return splitEnvList(configuredFetchUrls, fallback);
 }
 
+function cacheBustedUrl(url) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}_=${Date.now()}`;
+}
+
 async function fetchComunioData() {
   const { apiBase, token } = await login();
   const urls = configuredUrls(apiBase);
@@ -355,7 +362,7 @@ async function fetchComunioData() {
 
   for (const url of urls) {
     try {
-      pages.push(await fetchJson(url, {
+      pages.push(await fetchJson(cacheBustedUrl(url), {
         headers: {
           authorization: `Bearer ${token}`,
           origin: "https://www.comunio.de",
@@ -673,6 +680,50 @@ function mapTransferTicker(json) {
     .slice(0, 12);
 }
 
+function newsTimestamp(json) {
+  let found = 0;
+  walk(json, (item) => {
+    if (found || !item || typeof item !== "object") return;
+    const value = firstValue(
+      item.date,
+      item.createdAt,
+      item.created,
+      item.updatedAt,
+      item.updated,
+      item.timestamp,
+      item.time,
+      item.publishedAt
+    );
+    if (typeof value === "number" && Number.isFinite(value)) {
+      found = value > 100000000000 ? value : value * 1000;
+      return;
+    }
+    if (typeof value === "string") {
+      const parsed = Date.parse(value);
+      if (Number.isFinite(parsed)) found = parsed;
+    }
+  });
+  return found;
+}
+
+function newestTransferTicker(newsPages) {
+  return newsPages
+    .map((json, index) => ({
+      json,
+      index,
+      timestamp: newsTimestamp(json),
+      transfers: mapTransferTicker(json)
+    }))
+    .filter((page) => page.transfers.length)
+    .sort((a, b) => (b.timestamp - a.timestamp) || (a.index - b.index))
+    .flatMap((page) => page.transfers)
+    .filter((item, index, list) => {
+      const key = [item.action, item.player, item.from, item.to, item.price, item.text].join("|").toLowerCase();
+      return list.findIndex((other) => [other.action, other.player, other.from, other.to, other.price, other.text].join("|").toLowerCase() === key) === index;
+    })
+    .slice(0, 12);
+}
+
 function isUsefulTransferPlayer(value) {
   const text = normalizeText(value);
   if (!text) return false;
@@ -694,6 +745,15 @@ function findBudget(json) {
     if (value !== undefined && value !== null && value !== "") found = formatMoney(value);
   });
   return found;
+}
+
+function findBudgetFromRaw(raw) {
+  for (const page of raw.pages || []) {
+    if (page.status !== 200 || !page.json) continue;
+    const budget = findBudget(page.json);
+    if (budget) return budget;
+  }
+  return "";
 }
 
 function mapMatchdays(json) {
@@ -1049,7 +1109,7 @@ function buildAnalysis(raw, generatedLineupImage) {
     .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller));
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
-  const budget = findBudget(lineup) || findBudget(squad);
+  const budget = findBudget(lineup) || findBudget(squad) || findBudgetFromRaw(raw);
   const lowestPointPlayer = [...squadPlayers]
     .filter((player) => player.name && normalizeText(player.name) !== "computer")
     .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
@@ -1120,7 +1180,7 @@ function buildAnalysis(raw, generatedLineupImage) {
     },
     marketCandidates,
     standings,
-    transferTicker: news.flatMap(mapTransferTicker).slice(0, 12),
+    transferTicker: newestTransferTicker(news),
     livePlayers: mapLivePlayers(raw),
     budgetStatus: budget ? { amount: budget, note: "Aus Comunio-API erkannt" } : {},
     squadPlayers: squadPlayers.map((player) => ({

@@ -247,11 +247,11 @@ function shouldReplaceSquadInsights(screenType) {
 }
 
 function mergeBudgetStatus(previous, incoming, screenType) {
-  if (screenType !== "budget") {
-    return previous || {};
+  if (screenType === "budget" || isFullApiScreen(screenType)) {
+    return incoming?.amount ? incoming : previous || {};
   }
 
-  return incoming?.amount ? incoming : previous || {};
+  return previous || {};
 }
 
 function mergeClub(previousClub, incomingClub) {
