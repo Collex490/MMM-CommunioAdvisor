@@ -64,6 +64,19 @@ function formatMoney(value) {
   return /\u20ac|eur/i.test(formatted) ? formatted : `${formatted} \u20ac`;
 }
 
+function parseMoneyValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const normalized = String(value)
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .replace(/[^\d.-]/g, "");
+  if (!normalized || normalized === "-" || normalized === ".") return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function firstValue(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== "");
 }
@@ -504,6 +517,20 @@ function mapStandingsFromRaw(raw) {
     }));
 }
 
+function standingsSourceSummary(raw) {
+  return (raw.pages || [])
+    .filter((page) => page.status === 200 && page.json && page.url.includes("/standings"))
+    .map((page) => {
+      const rows = mapStandings(page.json)
+        .filter((team) => knownClubs.includes(normalizeText(team.name)))
+        .slice(0, 4)
+        .map((team) => `${team.rank}. ${team.name} ${team.totalPoints ?? "-"}P/${team.matchdayPoints ?? "-"}SP`)
+        .join(", ");
+      return `${page.url} => ${rows || "keine Teams erkannt"}`;
+    })
+    .join(" || ");
+}
+
 function squadMarketValue(squadJson) {
   const players = mapPlayers(squadJson);
   const total = players.reduce((sum, player) => {
@@ -706,14 +733,26 @@ function newsTimestamp(json) {
   return found;
 }
 
+function collectNewsEntries(json) {
+  const entries = [];
+  walk(json, (item) => {
+    if (!item || typeof item !== "object") return;
+    if (item.message && typeof item.message === "object") {
+      entries.push(item);
+    }
+  });
+  return entries.length ? entries : [json];
+}
+
 function newestTransferTicker(newsPages) {
   return newsPages
-    .map((json, index) => ({
-      json,
-      index,
-      timestamp: newsTimestamp(json),
-      transfers: mapTransferTicker(json)
+    .flatMap((json, pageIndex) => collectNewsEntries(json).map((entry, entryIndex) => ({
+      json: entry,
+      index: pageIndex * 1000 + entryIndex,
+      timestamp: newsTimestamp(entry),
+      transfers: mapTransferTicker(entry)
     }))
+    )
     .filter((page) => page.transfers.length)
     .sort((a, b) => (b.timestamp - a.timestamp) || (a.index - b.index))
     .flatMap((page) => page.transfers)
@@ -747,13 +786,63 @@ function findBudget(json) {
   return found;
 }
 
-function findBudgetFromRaw(raw) {
+function isTrustedBudgetUrl(url) {
+  return /login\/state|members|account|profile|user/i.test(url || "")
+    && !/standings|offers|news|market|squad|lineup|matchdays/i.test(url || "");
+}
+
+function budgetCandidatesFromRaw(raw) {
+  const candidates = [];
+
   for (const page of raw.pages || []) {
-    if (page.status !== 200 || !page.json) continue;
-    const budget = findBudget(page.json);
-    if (budget) return budget;
+    if (page.status !== 200 || !page.json || !isTrustedBudgetUrl(page.url)) continue;
+
+    walk(page.json, (item) => {
+      if (!item || typeof item !== "object") return;
+      const keys = lowerKeys(item);
+      const possibleEntries = [
+        ["accountbalance", keys.accountbalance],
+        ["account_balance", keys.account_balance],
+        ["balance", keys.balance],
+        ["budget", keys.budget],
+        ["credit", keys.credit],
+        ["money", keys.money],
+        ["account", keys.account]
+      ];
+
+      possibleEntries.forEach(([key, value]) => {
+        const parsed = parseMoneyValue(value);
+        if (parsed === null) return;
+        candidates.push({
+          url: page.url,
+          key,
+          value: parsed,
+          formatted: formatMoney(parsed)
+        });
+      });
+    });
   }
-  return "";
+
+  return candidates
+    .filter((candidate, index, list) => list.findIndex((other) => (
+      other.url === candidate.url
+      && other.key === candidate.key
+      && other.value === candidate.value
+    )) === index)
+    .sort((a, b) => {
+      const score = (candidate) => {
+        let result = 0;
+        if (candidate.value < 0) result += 100;
+        if (/account|balance/i.test(candidate.key)) result += 20;
+        if (/login\/state/i.test(candidate.url)) result += 10;
+        return result;
+      };
+      return score(b) - score(a);
+    });
+}
+
+function findBudgetFromRaw(raw) {
+  return budgetCandidatesFromRaw(raw)[0]?.formatted || "";
 }
 
 function mapMatchdays(json) {
@@ -1109,7 +1198,7 @@ function buildAnalysis(raw, generatedLineupImage) {
     .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller));
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
-  const budget = findBudget(lineup) || findBudget(squad) || findBudgetFromRaw(raw);
+  const budget = findBudgetFromRaw(raw);
   const lowestPointPlayer = [...squadPlayers]
     .filter((player) => player.name && normalizeText(player.name) !== "computer")
     .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
@@ -1220,6 +1309,11 @@ async function main() {
     console.log(`Aufstellungsbild generiert: ${generatedLineupImage.url}`);
   }
   console.log(`Tabelle: ${analysis.standings.length}, Kaderhinweise: ${analysis.squadInsights.keep.length + analysis.squadInsights.sell.length}, Markt: ${analysis.marketCandidates.length}`);
+  console.log(`Budget-Kandidaten: ${budgetCandidatesFromRaw(raw).slice(0, 6).map((candidate) => `${candidate.key}=${candidate.formatted} (${candidate.url})`).join(" | ") || "keine"}`);
+  console.log(`Budget: ${analysis.budgetStatus?.amount || "nicht gefunden"}`);
+  console.log(`Transfernews: ${analysis.transferTicker.slice(0, 4).map((item) => item.text || `${item.action}: ${item.player}`).join(" | ") || "keine"}`);
+  console.log(`Tabellenquellen: ${standingsSourceSummary(raw) || "keine"}`);
+  console.log(`Tabellenstand: ${analysis.standings.map((team) => `${team.rank}. ${team.name} ${team.totalPoints ?? "-"}P`).join(" | ") || "keine"}`);
 }
 
 main().catch((error) => {
