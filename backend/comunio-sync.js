@@ -972,12 +972,60 @@ function mapLivePlayers(raw) {
   const squadPlayers = mapPlayers(pageByUrl(raw, "/squad"));
   const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
   const livePlayers = new Map();
+  const livePointKeys = [
+    "livepoints",
+    "live_points",
+    "currentpoints",
+    "current_points",
+    "currentmatchpoints",
+    "current_match_points",
+    "matchdaypoints",
+    "matchday_points",
+    "lastpoints",
+    "last_points"
+  ];
+  const liveStateKeys = [
+    "livestatus",
+    "matchstatus",
+    "game_status",
+    "status"
+  ];
+  const playerObjectKeys = [
+    "player",
+    "tradable",
+    "lineupPlayer",
+    "userPlayer",
+    "playerInfo"
+  ];
   const livePages = raw.pages.filter((page) => {
     if (page.status !== 200 || !page.json) return false;
     if (!page.url.includes("/standings")) return false;
     if (page.url.includes("period=total")) return false;
     return page.url.includes("period=") || page.url.includes("live");
   });
+
+  function livePointsFrom(item, pageIsLive) {
+    const points = directNumberByKeys(item, livePointKeys);
+    if (points !== undefined) return points;
+    return pageIsLive ? directNumberByKeys(item, ["points", "score"]) : undefined;
+  }
+
+  function liveStateFrom(item) {
+    return directValueByKeys(item, liveStateKeys);
+  }
+
+  function playerCandidates(item) {
+    const candidates = [item];
+    playerObjectKeys.forEach((key) => {
+      if (item?.[key]) candidates.push(item[key]);
+      if (item?._embedded?.[key]) candidates.push(item._embedded[key]);
+    });
+    if (item?._embedded?.player) candidates.push(item._embedded.player);
+    if (item?._embedded?.tradable) candidates.push(item._embedded.tradable);
+    return candidates
+      .filter((candidate) => candidate && typeof candidate === "object")
+      .filter((candidate, index, list) => list.indexOf(candidate) === index);
+  }
 
   livePages
     .forEach((page) => {
@@ -986,52 +1034,35 @@ function mapLivePlayers(raw) {
       walk(page.json, (item) => {
         if (!item || typeof item !== "object") return;
 
-        const playerObject = item.player || item.tradable || item._embedded?.player || item._embedded?.tradable || item;
-        const name = objectName(playerObject);
-        if (!name || !ownPlayerNames.has(normalizeText(name))) return;
+        playerCandidates(item).forEach((playerObject) => {
+          const name = objectName(playerObject);
+          if (!name || !ownPlayerNames.has(normalizeText(name))) return;
 
-        let livePoints = directNumberByKeys(item, [
-          "livepoints",
-          "live_points",
-          "currentpoints",
-          "current_points",
-          "currentmatchpoints",
-          "current_match_points",
-          "matchdaypoints",
-          "matchday_points",
-          "lastpoints",
-          "last_points"
-        ]);
-        if (livePoints === undefined && pageIsLive) {
-          livePoints = directNumberByKeys(item, ["points", "score"]);
-        }
+          const livePoints = firstValue(
+            livePointsFrom(item, pageIsLive),
+            livePointsFrom(playerObject, pageIsLive)
+          );
+          const liveState = firstValue(
+            liveStateFrom(item),
+            liveStateFrom(playerObject)
+          );
 
-        const hasLiveState = Boolean(directValueByKeys(item, [
-          "livestatus",
-          "matchstatus",
-          "game_status",
-          "status"
-        ]));
+          if (livePoints === undefined && !liveState) return;
 
-        if (livePoints === undefined && !hasLiveState) return;
-
-        livePlayers.set(normalizeText(name), {
-          name,
-          position: firstValue(item.position, item.type, item.role, playerObject.position, playerObject.type, playerObject.role, ""),
-          club: firstValue(item.clubName, item.teamName, playerObject.clubName, playerObject.teamName, ""),
-          livePoints,
-          status: String(firstValue(
-            directValueByKeys(item, ["livestatus", "matchstatus", "game_status", "status"]),
-            "live"
-          )),
-          photoUrl: playerPhotoUrl({ raw: playerObject })
+          livePlayers.set(normalizeText(name), {
+            name,
+            position: firstValue(item.position, item.type, item.role, playerObject.position, playerObject.type, playerObject.role, ""),
+            club: firstValue(item.clubName, item.teamName, playerObject.clubName, playerObject.teamName, ""),
+            livePoints,
+            status: String(firstValue(liveState, pageIsLive ? "live" : "")),
+            photoUrl: playerPhotoUrl({ raw: playerObject })
+          });
         });
       });
     });
 
   return Array.from(livePlayers.values())
-    .sort((a, b) => (b.livePoints ?? -999) - (a.livePoints ?? -999))
-    .slice(0, 8);
+    .sort((a, b) => (b.livePoints ?? -999) - (a.livePoints ?? -999));
 }
 
 function ownTacticFromRaw(raw) {
@@ -1376,6 +1407,7 @@ async function main() {
   console.log(`Transfernews: ${analysis.transferTicker.slice(0, 4).map((item) => item.text || `${item.action}: ${item.player}`).join(" | ") || "keine"}`);
   console.log(`Tabellenquellen: ${standingsSourceSummary(raw) || "keine"}`);
   console.log(`Tabellenstand: ${analysis.standings.map((team) => `${team.rank}. ${team.name} ${team.totalPoints ?? "-"}P`).join(" | ") || "keine"}`);
+  console.log(`Live-Spieler: ${analysis.livePlayers.map((player) => `${player.name} ${player.livePoints ?? "-"}P`).join(" | ") || "keine"}`);
 }
 
 main().catch((error) => {
