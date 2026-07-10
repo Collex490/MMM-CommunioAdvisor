@@ -293,8 +293,9 @@
 }
 
 .communio-advisor__gap-chip--top {
-  color: #17130a;
-  background: rgba(217, 170, 63, 0.9);
+  color: var(--advisor-text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(217, 170, 63, 0.42);
 }
 
 .communio-advisor__gap-chip--top::before {
