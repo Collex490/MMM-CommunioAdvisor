@@ -155,6 +155,28 @@
     return Number.isFinite(parsed) && parsed < 0;
   }
 
+  function formatPositionLabel(position) {
+    const key = String(position || "").trim().toLowerCase();
+    const labels = {
+      goalkeeper: "Tor",
+      goalie: "Tor",
+      keeper: "Tor",
+      tw: "Tor",
+      defender: "Abwehr",
+      defense: "Abwehr",
+      defence: "Abwehr",
+      df: "Abwehr",
+      midfielder: "Mittelfeld",
+      midfield: "Mittelfeld",
+      mf: "Mittelfeld",
+      striker: "Sturm",
+      forward: "Sturm",
+      attacker: "Sturm",
+      st: "Sturm"
+    };
+    return labels[key] || position || "";
+  }
+
   function getTableStatus(standings, ownTeam) {
     if (!ownTeam) return { label: "Lage", value: "-", type: "gap" };
 
@@ -213,8 +235,8 @@
     const text = transfers
       .slice(0, 12)
       .map((item) => {
-        if (item.text) return item.text.replace(/\bfuer\b/g, "fÃƒÂ¼r");
-        const price = item.price ? ` fÃƒÂ¼r ${item.price}` : "";
+        if (item.text) return item.text;
+        const price = item.price ? ` fuer ${item.price}` : "";
         const direction = item.from || item.to
           ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
           : `zu ${item.club || "unbekannt"}`;

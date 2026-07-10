@@ -102,7 +102,7 @@
 
 .communio-advisor__content {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(540px, 0.95fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(500px, 0.85fr);
   align-items: start;
   gap: 12px;
   margin-top: 10px;
@@ -653,7 +653,7 @@
   }
 
   .communio-advisor__content {
-    grid-template-columns: minmax(0, 1.05fr) minmax(390px, 0.95fr);
+    grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
     gap: 8px;
     margin-top: 8px;
   }

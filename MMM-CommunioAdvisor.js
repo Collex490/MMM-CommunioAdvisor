@@ -1,4 +1,4 @@
-Module.register("MMM-CommunioAdvisor", {
+﻿Module.register("MMM-CommunioAdvisor", {
   defaults: {
     updateInterval: 5 * 60 * 1000,
     dataFile: "modules/MMM-CommunioAdvisor/data/latest.json",
@@ -10,7 +10,7 @@ Module.register("MMM-CommunioAdvisor", {
     showRumorImage: true,
     showSquadInsights: true,
     nextMatchdayAt: "",
-    nextMatchdayLabel: "NÃ¤chster Spieltag",
+    nextMatchdayLabel: "NÃƒÂ¤chster Spieltag",
     matchdays: [],
     showDebug: false
   },
@@ -258,12 +258,12 @@ Module.register("MMM-CommunioAdvisor", {
 
   formatCurrencyText(value) {
     const text = String(value || "").trim();
-    if (!text || /â‚¬|eur|offen|unbekannt|^-$/i.test(text)) {
+    if (!text || /Ã¢â€šÂ¬|eur|offen|unbekannt|^-$/i.test(text)) {
       return text;
     }
 
     return /^\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?$|^\d{4,}$/.test(text)
-      ? `${text} â‚¬`
+      ? `${text} Ã¢â€šÂ¬`
       : text;
   },
 
@@ -466,7 +466,7 @@ Module.register("MMM-CommunioAdvisor", {
       name.textContent = player.name || "Unbekannt";
 
       const meta = document.createElement("span");
-      meta.textContent = [player.position, player.club, player.status].filter(Boolean).join(" Â· ");
+      meta.textContent = this.formatPlayerMeta(player);
 
       info.appendChild(name);
       if (meta.textContent) {
@@ -496,6 +496,36 @@ Module.register("MMM-CommunioAdvisor", {
       .join("")
       .slice(0, 2)
       .toUpperCase();
+  },
+
+  formatPlayerMeta(player) {
+    return [
+      this.formatPositionLabel(player.position),
+      player.club,
+      player.status
+    ].filter(Boolean).join(" | ");
+  },
+
+  formatPositionLabel(position) {
+    const key = String(position || "").trim().toLowerCase();
+    const labels = {
+      goalkeeper: "Tor",
+      goalie: "Tor",
+      keeper: "Tor",
+      tw: "Tor",
+      defender: "Abwehr",
+      defense: "Abwehr",
+      defence: "Abwehr",
+      df: "Abwehr",
+      midfielder: "Mittelfeld",
+      midfield: "Mittelfeld",
+      mf: "Mittelfeld",
+      striker: "Sturm",
+      forward: "Sturm",
+      attacker: "Sturm",
+      st: "Sturm"
+    };
+    return labels[key] || position || "";
   },
 
   getFocusStatus(data) {
@@ -545,14 +575,14 @@ Module.register("MMM-CommunioAdvisor", {
     }
 
     const diffMs = target.getTime() - Date.now();
-    const label = matchday.label || this.config.nextMatchdayLabel || "NÃ¤chster Spieltag";
+    const label = matchday.label || this.config.nextMatchdayLabel || "NÃƒÂ¤chster Spieltag";
 
     if (diffMs <= 0 && diffMs > -3 * 60 * 60 * 1000) {
-      return { label, value: "lÃ¤uft jetzt" };
+      return { label, value: "lÃƒÂ¤uft jetzt" };
     }
 
     if (diffMs <= 0) {
-      return { label, value: "heute prÃ¼fen" };
+      return { label, value: "heute prÃƒÂ¼fen" };
     }
 
     const totalMinutes = Math.ceil(diffMs / 60000);
@@ -690,10 +720,10 @@ Module.register("MMM-CommunioAdvisor", {
       .slice(0, 10)
       .map((item) => {
         if (item.text) {
-          return item.text.replace(/\bfuer\b/g, "fÃ¼r");
+          return item.text;
         }
 
-        const price = item.price ? ` fÃ¼r ${this.formatCurrencyText(item.price)}` : "";
+        const price = item.price ? ` fuer ${this.formatCurrencyText(item.price)}` : "";
         const direction = item.from || item.to
           ? `${item.from ? `von ${item.from}` : ""}${item.from && item.to ? " " : ""}${item.to ? `zu ${item.to}` : ""}`
           : `zu ${item.club || "unbekannt"}`;
@@ -799,11 +829,11 @@ Module.register("MMM-CommunioAdvisor", {
 
     const label = document.createElement("div");
     label.className = "communio-advisor__card-label";
-    label.textContent = "GerÃ¼chtekÃ¼che";
+    label.textContent = "GerÃƒÂ¼chtekÃƒÂ¼che";
 
     const headline = document.createElement("div");
     headline.className = "communio-advisor__rumor-headline";
-    headline.textContent = rumorKitchen?.headline || "Patron Co prÃ¼ft Last-Minute-Deal";
+    headline.textContent = rumorKitchen?.headline || "Patron Co prÃƒÂ¼ft Last-Minute-Deal";
 
     const body = document.createElement("div");
     body.className = "communio-advisor__card-reason";
