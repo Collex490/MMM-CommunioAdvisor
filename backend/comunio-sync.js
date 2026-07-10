@@ -330,7 +330,7 @@ async function login() {
 function configuredUrls(apiBase) {
   const communityId = env("COMMUNIO_COMMUNITY_ID");
   const userId = env("COMMUNIO_USER_ID");
-  const livePeriods = splitEnvList(env("COMMUNIO_LIVE_PERIODS"), env("COMMUNIO_LIVE_PERIOD") ? [env("COMMUNIO_LIVE_PERIOD")] : []);
+  const livePeriods = splitEnvList(env("COMMUNIO_LIVE_PERIODS"), env("COMMUNIO_LIVE_PERIOD") ? [env("COMMUNIO_LIVE_PERIOD")] : ["live"]);
   const liveStandingsUrls = splitEnvList(env("COMMUNIO_LIVE_STANDINGS_URL"))
     .concat(
       communityId
@@ -347,6 +347,7 @@ function configuredUrls(apiBase) {
     env("COMMUNIO_STATE_URL")
   ].filter(Boolean).join(",");
   const fallback = [
+    `${apiBase}/`,
     `${apiBase}/login/state`,
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/lineup` : "",
     userId ? `${apiBase}/users/${userId}/squad` : "",
@@ -415,6 +416,8 @@ function bestArrayByScore(value, scorer) {
 }
 
 function mapStandings(json) {
+  const standingId = normalizeText(firstValue(json?.id, json?.key, json?.period));
+  const isLiveStanding = standingId === "live";
   const items = bestArrayByScore(json, (item) => {
     if (!item || typeof item !== "object") return 0;
     const keys = lowerKeys(item);
@@ -454,23 +457,30 @@ function mapStandings(json) {
     .map((item, index) => {
       const known = deepKnownClubName(item);
       const name = titleCaseClubName(known || objectName(item));
+      const livePoints = directNumberByKeys(item, ["livepoints", "live"]);
+      const rowIsLive = isLiveStanding || livePoints !== undefined;
       const matchdayPoints = directNumberByKeys(item, [
         "matchdaypoints",
         "currentpoints",
         "daypoints",
         "lastpoints"
       ]);
-      const totalPoints = directNumberByKeys(item, [
+      const baseTotalPoints = directNumberByKeys(item, [
         "totalpoints",
         "overallpoints",
         "pointstotal",
         "score",
         "points"
       ]);
+      const totalPoints = rowIsLive && baseTotalPoints !== undefined
+        ? baseTotalPoints + (livePoints || 0)
+        : baseTotalPoints;
       return {
         rank: directNumberByKeys(item, ["rank", "position", "place"]) || index + 1,
         name,
-        matchdayPoints: matchdayPoints !== undefined ? matchdayPoints : totalPoints,
+        matchdayPoints: rowIsLive
+          ? (livePoints !== undefined ? livePoints : 0)
+          : (matchdayPoints !== undefined ? matchdayPoints : totalPoints),
         totalPoints,
         marketValue: formatMoney(firstValue(
           directValueByKeys(item, ["marketvalue", "teamvalue"]),
@@ -493,17 +503,31 @@ function mapStandingsFromRaw(raw) {
       if (page.url.includes("/lineup")) return false;
       return page.url.includes("/standings") || page.url.includes("total.json");
     })
-    .map((page) => page.json);
+    .map((page) => {
+      const json = page.json;
+      const id = normalizeText(firstValue(json?.id, json?.key, json?.period));
+      const isLive = id === "live" || page.url.includes("period=live");
+      return { json, url: page.url, isLive };
+    });
 
   const standings = candidates
-    .map((json) => mapStandings(json))
-    .filter((items) => items.length >= 2)
+    .map((candidate) => ({
+      ...candidate,
+      items: mapStandings(candidate.json)
+    }))
+    .filter((candidate) => candidate.items.length >= 2)
     .sort((a, b) => {
       const clubCount = (items) => new Set(items.map((item) => normalizeText(item.name)).filter((name) => knownClubs.includes(name))).size;
       const marketCount = (items) => items.filter((item) => item.marketValue).length;
       const totalPointCount = (items) => items.filter((item) => item.totalPoints !== undefined).length;
-      return clubCount(b) - clubCount(a) || totalPointCount(b) - totalPointCount(a) || marketCount(b) - marketCount(a) || b.length - a.length;
-    })[0] || [];
+      const livePointSum = (items) => items.reduce((sum, item) => sum + (Number(item.matchdayPoints) || 0), 0);
+      return Number(b.isLive) - Number(a.isLive)
+        || clubCount(b.items) - clubCount(a.items)
+        || livePointSum(b.items) - livePointSum(a.items)
+        || totalPointCount(b.items) - totalPointCount(a.items)
+        || marketCount(b.items) - marketCount(a.items)
+        || b.items.length - a.items.length;
+    })[0]?.items || [];
 
   const validRows = standings.filter((item) => item.totalPoints !== undefined || item.matchdayPoints !== undefined);
   if (validRows.length < 2) return [];
