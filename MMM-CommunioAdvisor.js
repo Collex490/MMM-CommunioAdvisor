@@ -464,7 +464,7 @@
       name.textContent = player.name || "Unbekannt";
 
       const meta = document.createElement("span");
-      meta.textContent = this.formatPlayerMeta(player);
+      meta.textContent = isLive ? "live" : this.formatPlayerMeta(player);
 
       info.appendChild(name);
       if (meta.textContent) {

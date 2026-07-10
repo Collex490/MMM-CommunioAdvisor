@@ -219,7 +219,7 @@
 
       const info = el("div", "ipad-advisor__player-preview-info");
       info.appendChild(el("strong", "", player.name || "Unbekannt"));
-      info.appendChild(el("span", "", [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
+      info.appendChild(el("span", "", livePlayers.length ? "live" : [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
       item.appendChild(photo);
       item.appendChild(info);
 
