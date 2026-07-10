@@ -979,10 +979,8 @@ function mapLivePlayers(raw) {
     "current_points",
     "currentmatchpoints",
     "current_match_points",
-    "matchdaypoints",
-    "matchday_points",
-    "lastpoints",
-    "last_points"
+    "currentlivepoints",
+    "current_live_points"
   ];
   const liveStateKeys = [
     "livestatus",
@@ -1010,11 +1008,16 @@ function mapLivePlayers(raw) {
   function livePointsFrom(item, pageIsLive) {
     const points = directNumberByKeys(item, livePointKeys);
     if (points !== undefined) return points;
-    return pageIsLive ? directNumberByKeys(item, ["points", "score"]) : undefined;
+    return pageIsLive ? directNumberByKeys(item, ["live", "live_score", "livescore"]) : undefined;
   }
 
   function liveStateFrom(item) {
     return directValueByKeys(item, liveStateKeys);
+  }
+
+  function isActiveLiveState(value) {
+    const text = normalizeText(value);
+    return ["live", "running", "playing", "active", "inprogress", "in_progress"].includes(text);
   }
 
   function playerCandidates(item) {
@@ -1043,15 +1046,16 @@ function mapLivePlayers(raw) {
           if (!name || !ownPlayerNames.has(normalizeText(name))) return;
 
           const livePoints = firstValue(
-            livePointsFrom(item, pageIsLive),
-            livePointsFrom(playerObject, pageIsLive)
+            livePointsFrom(playerObject, pageIsLive),
+            playerObject === item ? livePointsFrom(item, pageIsLive) : undefined
           );
           const liveState = firstValue(
-            liveStateFrom(item),
-            liveStateFrom(playerObject)
+            liveStateFrom(playerObject),
+            playerObject === item ? liveStateFrom(item) : undefined
           );
 
-          if (!pageCanContainLivePlayers || (livePoints === undefined && !liveState)) return;
+          if (!pageCanContainLivePlayers || livePoints === undefined) return;
+          if (liveState && !isActiveLiveState(liveState)) return;
 
           livePlayers.set(normalizeText(name), {
             name,
