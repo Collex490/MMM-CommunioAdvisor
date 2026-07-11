@@ -409,14 +409,18 @@
     const sourcePlayers = data.livePlayers || data.livePoints || [];
     const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
       .filter((player) => player && (player.livePoints !== undefined || player.status));
+    const liveByName = new Map(livePlayers.map((player) => [this.normalizePlayerName(player.name), player]));
     const fallbackPlayers = (Array.isArray(data.squadPlayers) ? data.squadPlayers : [])
       .filter((player) => player && player.name)
       .sort((a, b) => (b.points ?? -999) - (a.points ?? -999))
       .map((player) => ({
         ...player,
+        ...(liveByName.get(this.normalizePlayerName(player.name)) || {}),
         status: player.status || "Saisonpunkte"
       }));
-    const players = livePlayers.length ? livePlayers : fallbackPlayers;
+    const fallbackNames = new Set(fallbackPlayers.map((player) => this.normalizePlayerName(player.name)));
+    const extraLivePlayers = livePlayers.filter((player) => !fallbackNames.has(this.normalizePlayerName(player.name)));
+    const players = fallbackPlayers.length ? [...fallbackPlayers, ...extraLivePlayers] : livePlayers;
     const hasMatchdayPoints = livePlayers.length > 0;
     const isLive = livePlayers.some((player) => {
       const status = String(player.status || "").toLowerCase();
@@ -468,7 +472,10 @@
       name.textContent = player.name || "Unbekannt";
 
       const meta = document.createElement("span");
-      meta.textContent = hasMatchdayPoints ? (isLive ? "live" : "Spieltag") : this.formatPlayerMeta(player);
+      const hasPlayerMatchdayPoints = player.livePoints !== undefined && player.livePoints !== null;
+      meta.textContent = hasPlayerMatchdayPoints
+        ? (isLive ? "Livepunkte" : "Spieltagpunkte")
+        : this.formatPlayerMeta(player);
 
       info.appendChild(name);
       if (meta.textContent) {
@@ -477,7 +484,7 @@
 
       item.appendChild(photo);
       item.appendChild(info);
-      if (hasMatchdayPoints) {
+      if (hasPlayerMatchdayPoints) {
         const points = document.createElement("div");
         points.className = "communio-advisor__live-points";
         const value = player.livePoints ?? "-";
@@ -498,6 +505,15 @@
       .join("")
       .slice(0, 2)
       .toUpperCase();
+  },
+
+  normalizePlayerName(name) {
+    return String(name || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   },
 
   formatPlayerMeta(player) {

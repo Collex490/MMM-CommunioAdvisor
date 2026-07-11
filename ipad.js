@@ -186,18 +186,31 @@
       .toUpperCase();
   }
 
+  function normalizePlayerName(name) {
+    return String(name || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
   function playerPreview(data) {
     const sourcePlayers = data.livePlayers || data.livePoints || [];
     const livePlayers = (Array.isArray(sourcePlayers) ? sourcePlayers : [])
       .filter((player) => player && (player.livePoints !== undefined || player.status));
+    const liveByName = new Map(livePlayers.map((player) => [normalizePlayerName(player.name), player]));
     const fallbackPlayers = (Array.isArray(data.squadPlayers) ? data.squadPlayers : [])
       .filter((player) => player && player.name)
       .sort((a, b) => (b.points ?? -999) - (a.points ?? -999))
       .map((player) => ({
         ...player,
+        ...(liveByName.get(normalizePlayerName(player.name)) || {}),
         status: player.status || "Saisonpunkte"
       }));
-    const players = livePlayers.length ? livePlayers : fallbackPlayers;
+    const fallbackNames = new Set(fallbackPlayers.map((player) => normalizePlayerName(player.name)));
+    const extraLivePlayers = livePlayers.filter((player) => !fallbackNames.has(normalizePlayerName(player.name)));
+    const players = fallbackPlayers.length ? [...fallbackPlayers, ...extraLivePlayers] : livePlayers;
     const hasMatchdayPoints = livePlayers.length > 0;
     const isLive = livePlayers.some((player) => {
       const status = String(player.status || "").toLowerCase();
@@ -224,11 +237,14 @@
 
       const info = el("div", "ipad-advisor__player-preview-info");
       info.appendChild(el("strong", "", player.name || "Unbekannt"));
-      info.appendChild(el("span", "", hasMatchdayPoints ? (isLive ? "live" : "Spieltag") : [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
+      const hasPlayerMatchdayPoints = player.livePoints !== undefined && player.livePoints !== null;
+      info.appendChild(el("span", "", hasPlayerMatchdayPoints
+        ? (isLive ? "Livepunkte" : "Spieltagpunkte")
+        : [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
       item.appendChild(photo);
       item.appendChild(info);
 
-      if (hasMatchdayPoints) {
+      if (hasPlayerMatchdayPoints) {
         item.appendChild(el("em", "ipad-advisor__player-preview-points", `${player.livePoints ?? "-"} P`));
       }
       list.appendChild(item);
