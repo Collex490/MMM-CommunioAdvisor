@@ -260,7 +260,7 @@ function ownMatchdayPoints(standings) {
   return Number.isFinite(value) ? value : 0;
 }
 
-function mergeLivePlayers(previousLivePlayers, incomingLivePlayers, incomingStandings) {
+function mergeLivePlayers(previousLivePlayers, incomingLivePlayers, incomingStandings, screenType) {
   const ownPoints = ownMatchdayPoints(incomingStandings);
 
   if (Array.isArray(incomingLivePlayers) && incomingLivePlayers.length) {
@@ -285,6 +285,13 @@ function mergeLivePlayers(previousLivePlayers, incomingLivePlayers, incomingStan
 
     return Array.from(merged.values())
       .sort((a, b) => (Number(b.livePoints ?? -999) - Number(a.livePoints ?? -999)));
+  }
+
+  if (screenType === "api-analysis" && Array.isArray(previousLivePlayers) && previousLivePlayers.length) {
+    return previousLivePlayers.map((player) => ({
+      ...player,
+      status: player.status || "Spieltag"
+    }));
   }
 
   if (ownPoints > 0 && Array.isArray(previousLivePlayers) && previousLivePlayers.length) {
@@ -370,7 +377,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
       : isTransferNewsScreen(screenType)
         ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
         : previous.transferTicker || [],
-    livePlayers: mergeLivePlayers(previous.livePlayers, incoming.livePlayers, incoming.standings),
+    livePlayers: mergeLivePlayers(previous.livePlayers, incoming.livePlayers, incoming.standings, screenType),
     budgetStatus,
     squadPlayers: Array.isArray(incoming.squadPlayers) && incoming.squadPlayers.length
       ? incoming.squadPlayers

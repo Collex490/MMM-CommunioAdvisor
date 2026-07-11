@@ -44,6 +44,7 @@ function compactPayloadForAnalysis(rawPayload, currentData) {
       standings: currentData.standings || [],
       transferTicker: currentData.transferTicker || [],
       budgetStatus: currentData.budgetStatus || {},
+      livePlayers: currentData.livePlayers || [],
       marketCandidates: currentData.marketCandidates || [],
       squadPlayers: currentData.squadPlayers || [],
       squadInsights: currentData.squadInsights || {},
