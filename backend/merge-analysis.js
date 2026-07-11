@@ -254,6 +254,27 @@ function mergeBudgetStatus(previous, incoming, screenType) {
   return previous || {};
 }
 
+function ownMatchdayPoints(standings) {
+  const ownTeam = (standings || []).find((team) => team?.isUserClub);
+  const value = Number(ownTeam?.matchdayPoints ?? ownTeam?.dayPoints ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function mergeLivePlayers(previousLivePlayers, incomingLivePlayers, incomingStandings) {
+  if (Array.isArray(incomingLivePlayers) && incomingLivePlayers.length) {
+    return incomingLivePlayers;
+  }
+
+  if (ownMatchdayPoints(incomingStandings) > 0 && Array.isArray(previousLivePlayers) && previousLivePlayers.length) {
+    return previousLivePlayers.map((player) => ({
+      ...player,
+      status: player.status || "Spieltag"
+    }));
+  }
+
+  return [];
+}
+
 function mergeClub(previousClub, incomingClub) {
   const previous = previousClub && typeof previousClub === "object" ? previousClub : {};
   const incoming = incomingClub && typeof incomingClub === "object" ? incomingClub : {};
@@ -327,9 +348,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
       : isTransferNewsScreen(screenType)
         ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
         : previous.transferTicker || [],
-    livePlayers: Array.isArray(incoming.livePlayers)
-      ? incoming.livePlayers
-      : previous.livePlayers || [],
+    livePlayers: mergeLivePlayers(previous.livePlayers, incoming.livePlayers, incoming.standings),
     budgetStatus,
     squadPlayers: Array.isArray(incoming.squadPlayers) && incoming.squadPlayers.length
       ? incoming.squadPlayers
