@@ -261,11 +261,33 @@ function ownMatchdayPoints(standings) {
 }
 
 function mergeLivePlayers(previousLivePlayers, incomingLivePlayers, incomingStandings) {
+  const ownPoints = ownMatchdayPoints(incomingStandings);
+
   if (Array.isArray(incomingLivePlayers) && incomingLivePlayers.length) {
-    return incomingLivePlayers;
+    const merged = new Map();
+    incomingLivePlayers.forEach((player) => {
+      if (!player?.name) return;
+      merged.set(normalizeText(player.name), player);
+    });
+
+    if (ownPoints > 0 && Array.isArray(previousLivePlayers) && previousLivePlayers.length) {
+      previousLivePlayers.forEach((player) => {
+        if (!player?.name) return;
+        const key = normalizeText(player.name);
+        if (!merged.has(key)) {
+          merged.set(key, {
+            ...player,
+            status: player.status || "Spieltag"
+          });
+        }
+      });
+    }
+
+    return Array.from(merged.values())
+      .sort((a, b) => (Number(b.livePoints ?? -999) - Number(a.livePoints ?? -999)));
   }
 
-  if (ownMatchdayPoints(incomingStandings) > 0 && Array.isArray(previousLivePlayers) && previousLivePlayers.length) {
+  if (ownPoints > 0 && Array.isArray(previousLivePlayers) && previousLivePlayers.length) {
     return previousLivePlayers.map((player) => ({
       ...player,
       status: player.status || "Spieltag"
