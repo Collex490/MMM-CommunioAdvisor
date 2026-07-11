@@ -779,12 +779,12 @@
     const track = document.createElement("div");
     track.className = "communio-advisor__ticker-track";
 
-    const items = transfers.length ? transfers : [
-      { action: "Info", player: "Noch keine Transfers", club: "Screenshot per Telegram senden" }
+    const validItems = (transfers || []).filter((item) => this.isHumanTransfer(item));
+    const items = validItems.length ? validItems : [
+      { text: "Keine neuen Transfernews aus Comunio" }
     ];
 
     const text = items
-      .filter((item) => this.isHumanTransfer(item))
       .slice(0, 10)
       .map((item) => {
         if (item.text) {
@@ -814,9 +814,15 @@
       item?.club,
       item?.price
     ].join(" ").toLowerCase();
+    const blocked = [
+      "noch keine transfers",
+      "screenshot per telegram",
+      "telegram senden"
+    ];
     return Boolean(item?.player || item?.action)
       && !text.includes("listed")
-      && !text.includes("gelistet");
+      && !text.includes("gelistet")
+      && !blocked.some((phrase) => text.includes(phrase));
   },
 
   buildSquadInsights(squadInsights) {
