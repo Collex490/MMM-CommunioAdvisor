@@ -25,6 +25,8 @@ const dataPath = env("COMMUNIO_ADVISOR_DATA_PATH")
   || path.join(__dirname, "..", "data", "latest.json");
 const rawPath = env("COMMUNIO_API_RAW_PATH")
   || path.join(__dirname, "..", "data", "comunio-api-raw.json");
+const livePlayersCachePath = env("COMMUNIO_LIVE_PLAYERS_CACHE_PATH")
+  || path.join(__dirname, "..", "data", "live-players-cache.json");
 const uploadDir = env("COMMUNIO_ADVISOR_UPLOAD_DIR")
   || path.join(__dirname, "..", "uploads");
 const publicUploadBase = env("COMMUNIO_ADVISOR_PUBLIC_UPLOAD_BASE")
@@ -44,6 +46,14 @@ function parseJsonSafe(text) {
     return JSON.parse(text);
   } catch {
     return null;
+  }
+}
+
+async function readJsonIfExists(filePath, fallback = null) {
+  try {
+    return JSON.parse(await fs.readFile(filePath, "utf8"));
+  } catch {
+    return fallback;
   }
 }
 
@@ -1149,6 +1159,65 @@ function ownTacticFromRaw(raw) {
   return tactic || "343";
 }
 
+function ownTeamFromStandings(standings) {
+  return (standings || []).find((team) => team?.isUserClub) || null;
+}
+
+function ownMatchdayPointsFromStandings(standings) {
+  const ownTeam = ownTeamFromStandings(standings);
+  const value = Number(ownTeam?.matchdayPoints ?? ownTeam?.dayPoints ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function ownTotalPointsFromStandings(standings) {
+  const ownTeam = ownTeamFromStandings(standings);
+  const value = Number(ownTeam?.totalPoints ?? ownTeam?.points ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function livePlayersPointsSum(players) {
+  return (players || []).reduce((sum, player) => {
+    const value = Number(player?.livePoints ?? 0);
+    return Number.isFinite(value) ? sum + value : sum;
+  }, 0);
+}
+
+async function applyLivePlayersCache(analysis) {
+  const currentPlayers = Array.isArray(analysis.livePlayers) ? analysis.livePlayers : [];
+  const ownMatchdayPoints = ownMatchdayPointsFromStandings(analysis.standings);
+  const ownTotalPoints = ownTotalPointsFromStandings(analysis.standings);
+
+  if (currentPlayers.length) {
+    const cache = {
+      generatedAt: new Date().toISOString(),
+      ownMatchdayPoints,
+      ownTotalPoints,
+      players: currentPlayers
+    };
+    await fs.mkdir(path.dirname(livePlayersCachePath), { recursive: true });
+    await fs.writeFile(livePlayersCachePath, JSON.stringify(cache, null, 2), "utf8");
+    return currentPlayers;
+  }
+
+  if (ownMatchdayPoints <= 0) return [];
+
+  const cache = await readJsonIfExists(livePlayersCachePath, null);
+  const cachedPlayers = Array.isArray(cache?.players) ? cache.players : [];
+  if (!cachedPlayers.length) return [];
+
+  const cachedTotal = Number(cache.ownTotalPoints ?? 0);
+  const cachedSum = livePlayersPointsSum(cachedPlayers);
+  const cacheAgeMs = Date.now() - Date.parse(cache.generatedAt || 0);
+  const cacheIsFresh = Number.isFinite(cacheAgeMs) && cacheAgeMs < 72 * 60 * 60 * 1000;
+  const cacheFitsCurrentMatchday = cachedSum > 0
+    && cachedSum <= ownMatchdayPoints
+    && (!cachedTotal || cachedTotal <= ownTotalPoints);
+
+  return cacheIsFresh && cacheFitsCurrentMatchday
+    ? cachedPlayers.map((player) => ({ ...player, status: player.status || "Spieltag" }))
+    : [];
+}
+
 function tacticRows(tactic) {
   const digits = String(tactic || "")
     .replace(/[^\d]/g, "")
@@ -1448,6 +1517,7 @@ async function main() {
   const { raw, token } = await fetchComunioData();
   const generatedLineupImage = await renderGeneratedLineup(raw, token);
   const analysis = buildAnalysis(raw, generatedLineupImage);
+  analysis.livePlayers = await applyLivePlayersCache(analysis);
   const merged = await mergeWithExisting(dataPath, analysis);
 
   await fs.mkdir(path.dirname(dataPath), { recursive: true });
