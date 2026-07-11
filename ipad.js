@@ -243,6 +243,10 @@
         : [formatPositionLabel(player.position), player.status].filter(Boolean).join(" | ")));
       item.appendChild(photo);
       item.appendChild(info);
+      const trend = marketTrendClass(player);
+      if (trend) {
+        item.appendChild(el("em", `ipad-advisor__market-trend ipad-advisor__market-trend--${trend}`, marketTrendSymbol(trend)));
+      }
 
       if (hasPlayerMatchdayPoints) {
         item.appendChild(el("em", "ipad-advisor__player-preview-points", `${player.livePoints ?? "-"} P`));
@@ -252,6 +256,21 @@
 
     node.appendChild(list);
     return node;
+  }
+
+  function marketTrendClass(player) {
+    const trend = String(player.marketTrend || player.trend || "").trim().toLowerCase();
+    if (["up", "rise", "rising", "increase", "positive", "hoch", "steigt", "steigend"].includes(trend)) return "up";
+    if (["down", "fall", "falling", "decrease", "negative", "runter", "sinkt", "sinkend"].includes(trend)) return "down";
+    if (["flat", "same", "stable", "neutral", "gleich", "stabil"].includes(trend)) return "flat";
+    return "";
+  }
+
+  function marketTrendSymbol(trend) {
+    if (trend === "up") return "▲";
+    if (trend === "down") return "▼";
+    if (trend === "flat") return "•";
+    return "";
   }
 
   function getTableStatus(standings, ownTeam) {

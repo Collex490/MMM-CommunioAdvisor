@@ -484,6 +484,14 @@
 
       item.appendChild(photo);
       item.appendChild(info);
+      const marketTrend = this.marketTrendClass(player);
+      if (marketTrend) {
+        const trend = document.createElement("div");
+        trend.className = `communio-advisor__market-trend communio-advisor__market-trend--${marketTrend}`;
+        trend.textContent = this.marketTrendSymbol(marketTrend);
+        trend.title = this.marketTrendTitle(marketTrend);
+        item.appendChild(trend);
+      }
       if (hasPlayerMatchdayPoints) {
         const points = document.createElement("div");
         points.className = "communio-advisor__live-points";
@@ -522,6 +530,34 @@
       player.club,
       player.status
     ].filter(Boolean).join(" | ");
+  },
+
+  marketTrendClass(player) {
+    const trend = String(player.marketTrend || player.trend || "").trim().toLowerCase();
+    if (["up", "rise", "rising", "increase", "positive", "hoch", "steigt", "steigend"].includes(trend)) {
+      return "up";
+    }
+    if (["down", "fall", "falling", "decrease", "negative", "runter", "sinkt", "sinkend"].includes(trend)) {
+      return "down";
+    }
+    if (["flat", "same", "stable", "neutral", "gleich", "stabil"].includes(trend)) {
+      return "flat";
+    }
+    return "";
+  },
+
+  marketTrendSymbol(trend) {
+    if (trend === "up") return "▲";
+    if (trend === "down") return "▼";
+    if (trend === "flat") return "•";
+    return "";
+  },
+
+  marketTrendTitle(trend) {
+    if (trend === "up") return "Marktwert steigt";
+    if (trend === "down") return "Marktwert sinkt";
+    if (trend === "flat") return "Marktwert stabil";
+    return "";
   },
 
   formatPositionLabel(position) {

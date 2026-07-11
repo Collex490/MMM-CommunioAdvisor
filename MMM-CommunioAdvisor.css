@@ -167,7 +167,7 @@
 
 .communio-advisor__live-player {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 6px;
   min-height: 48px;
@@ -215,6 +215,36 @@
   margin-top: 2px;
   color: var(--advisor-muted);
   font-size: 10px;
+}
+
+.communio-advisor__market-trend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.communio-advisor__market-trend--up {
+  color: #fff;
+  background: #249b42;
+  border: 1px solid rgba(97, 230, 130, 0.58);
+}
+
+.communio-advisor__market-trend--down {
+  color: #fff;
+  background: #b73535;
+  border: 1px solid rgba(255, 110, 110, 0.62);
+}
+
+.communio-advisor__market-trend--flat {
+  color: #16120a;
+  background: var(--advisor-gold);
+  border: 1px solid rgba(255, 220, 110, 0.68);
 }
 
 .communio-advisor__live-points {

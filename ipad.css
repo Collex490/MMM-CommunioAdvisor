@@ -342,7 +342,7 @@ body {
 
 .ipad-advisor__player-preview-item {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 6px;
   min-height: 43px;
@@ -388,6 +388,37 @@ body {
   margin-top: 1px;
   color: var(--muted);
   font-size: 9px;
+}
+
+.ipad-advisor__market-trend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.ipad-advisor__market-trend--up {
+  color: #fff;
+  background: #249b42;
+  border: 1px solid rgba(97, 230, 130, 0.58);
+}
+
+.ipad-advisor__market-trend--down {
+  color: #fff;
+  background: #b73535;
+  border: 1px solid rgba(255, 110, 110, 0.62);
+}
+
+.ipad-advisor__market-trend--flat {
+  color: #16120a;
+  background: var(--gold);
+  border: 1px solid rgba(255, 220, 110, 0.68);
 }
 
 .ipad-advisor__player-preview-points {
