@@ -262,6 +262,105 @@ function directValueByKeys(item, keys) {
   return undefined;
 }
 
+function normalizeMarketTrend(value) {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value === "number") {
+    if (value > 0) return "up";
+    if (value < 0) return "down";
+    return "flat";
+  }
+
+  const normalized = normalizeText(value);
+  if (!normalized) return "";
+
+  if (/^\+/.test(normalized)) return "up";
+  if (/^-/.test(normalized)) return "down";
+  if (["up", "rise", "rising", "increase", "increased", "positive", "plus", "hoch", "steigt", "steigend"].includes(normalized)) {
+    return "up";
+  }
+  if (["down", "fall", "falling", "decrease", "decreased", "negative", "minus", "runter", "sinkt", "sinkend"].includes(normalized)) {
+    return "down";
+  }
+  if (["flat", "same", "stable", "neutral", "gleich", "stabil", "unveraendert", "unverändert"].includes(normalized)) {
+    return "flat";
+  }
+
+  const number = numberish(String(value));
+  if (number > 0) return "up";
+  if (number < 0) return "down";
+  if (number === 0) return "flat";
+  return "";
+}
+
+function extractMarketTrend(item) {
+  if (!item || typeof item !== "object") return "";
+
+  const rawTrend = firstValue(
+    directValueByKeys(item, [
+      "marketValueTrend",
+      "marketvalueTrend",
+      "marketTrend",
+      "valueTrend",
+      "priceTrend",
+      "trend",
+      "tendency",
+      "trendDirection",
+      "marketValueDirection"
+    ]),
+    item.tradable?.marketValueTrend,
+    item.tradable?.trend,
+    item._embedded?.tradable?.marketValueTrend,
+    item._embedded?.tradable?.trend,
+    item.player?.marketValueTrend,
+    item.player?.trend
+  );
+  const directTrend = normalizeMarketTrend(rawTrend);
+  if (directTrend) return directTrend;
+
+  const rawDelta = firstValue(
+    directValueByKeys(item, [
+      "marketValueChange",
+      "marketvalueChange",
+      "marketValueDelta",
+      "valueChange",
+      "priceChange",
+      "delta",
+      "change"
+    ]),
+    item.tradable?.marketValueChange,
+    item.tradable?.valueChange,
+    item._embedded?.tradable?.marketValueChange,
+    item._embedded?.tradable?.valueChange,
+    item.player?.marketValueChange,
+    item.player?.valueChange
+  );
+  return normalizeMarketTrend(rawDelta);
+}
+
+function applySquadMarketTrends(squadPlayers, previousSquadPlayers) {
+  const previousByName = new Map((previousSquadPlayers || [])
+    .filter((player) => player?.name)
+    .map((player) => [normalizeText(player.name), numberish(player.marketValue)]));
+
+  return (squadPlayers || []).map((player) => {
+    if (!player?.name) return player;
+    const currentValue = numberish(player.marketValue);
+    const previousValue = previousByName.get(normalizeText(player.name));
+    let marketTrend = player.marketTrend || "";
+
+    if (!marketTrend && currentValue !== undefined && previousValue !== undefined) {
+      if (currentValue > previousValue) marketTrend = "up";
+      else if (currentValue < previousValue) marketTrend = "down";
+      else marketTrend = "flat";
+    }
+
+    return {
+      ...player,
+      marketTrend
+    };
+  });
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, {
     ...options,
@@ -630,6 +729,7 @@ function mapPlayers(json) {
       name: objectName(item),
       position: firstValue(item.type, item.positionName, item.role, item.position, ""),
       marketValue: formatMoney(objectMoney(item)),
+      marketTrend: extractMarketTrend(item),
       points: numberish(firstValue(item.points, item.totalPoints, item.score)),
       photoUrl: playerPhotoUrl({ raw: item }),
       raw: item
@@ -1495,6 +1595,7 @@ function buildAnalysis(raw, generatedLineupImage) {
       name: player.name,
       position: player.position,
       marketValue: player.marketValue,
+      marketTrend: player.marketTrend,
       points: player.points,
       photoUrl: player.photoUrl
     })),
@@ -1517,6 +1618,8 @@ async function main() {
   const { raw, token } = await fetchComunioData();
   const generatedLineupImage = await renderGeneratedLineup(raw, token);
   const analysis = buildAnalysis(raw, generatedLineupImage);
+  const previousData = await readJsonIfExists(dataPath, {});
+  analysis.squadPlayers = applySquadMarketTrends(analysis.squadPlayers, previousData.squadPlayers);
   analysis.livePlayers = await applyLivePlayersCache(analysis);
   const merged = await mergeWithExisting(dataPath, analysis);
 
