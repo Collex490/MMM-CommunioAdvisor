@@ -198,6 +198,8 @@ function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+globalThis.normalizeText = normalizeText;
+
 function knownClubName(value) {
   const normalized = normalizeText(value);
   return knownClubs.find((club) => normalized === club || normalized.includes(club)) || "";
@@ -1647,6 +1649,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error.message);
+  console.error(error.stack || error.message);
   process.exitCode = 1;
 });
