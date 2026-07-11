@@ -378,6 +378,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
         ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
         : previous.transferTicker || [],
     livePlayers: mergeLivePlayers(previous.livePlayers, incoming.livePlayers, incoming.standings, screenType),
+    livePlayersMeta: incoming.livePlayersMeta || previous.livePlayersMeta,
     budgetStatus,
     squadPlayers: Array.isArray(incoming.squadPlayers) && incoming.squadPlayers.length
       ? incoming.squadPlayers

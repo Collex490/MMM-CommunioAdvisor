@@ -1296,22 +1296,49 @@ async function applyLivePlayersCache(analysis) {
   const ownTotalPoints = ownTotalPointsFromStandings(analysis.standings);
 
   if (currentPlayers.length) {
+    const generatedAt = new Date().toISOString();
+    const players = currentPlayers.map((player) => ({
+      ...player,
+      status: player.status || "live",
+      matchdayPointsTotal: ownMatchdayPoints,
+      totalPointsSnapshot: ownTotalPoints
+    }));
     const cache = {
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       ownMatchdayPoints,
       ownTotalPoints,
-      players: currentPlayers
+      players
+    };
+    analysis.livePlayersMeta = {
+      source: "live",
+      ownMatchdayPoints,
+      ownTotalPoints,
+      cachedAt: generatedAt
     };
     await fs.mkdir(path.dirname(livePlayersCachePath), { recursive: true });
     await fs.writeFile(livePlayersCachePath, JSON.stringify(cache, null, 2), "utf8");
-    return currentPlayers;
+    return players;
   }
 
-  if (ownMatchdayPoints <= 0) return [];
+  if (ownMatchdayPoints <= 0) {
+    analysis.livePlayersMeta = {
+      source: "none",
+      ownMatchdayPoints,
+      ownTotalPoints
+    };
+    return [];
+  }
 
   const cache = await readJsonIfExists(livePlayersCachePath, null);
   const cachedPlayers = Array.isArray(cache?.players) ? cache.players : [];
-  if (!cachedPlayers.length) return [];
+  if (!cachedPlayers.length) {
+    analysis.livePlayersMeta = {
+      source: "none",
+      ownMatchdayPoints,
+      ownTotalPoints
+    };
+    return [];
+  }
 
   const cachedTotal = Number(cache.ownTotalPoints ?? 0);
   const cachedSum = livePlayersPointsSum(cachedPlayers);
@@ -1321,9 +1348,26 @@ async function applyLivePlayersCache(analysis) {
     && cachedSum <= ownMatchdayPoints
     && (!cachedTotal || cachedTotal <= ownTotalPoints);
 
-  return cacheIsFresh && cacheFitsCurrentMatchday
-    ? cachedPlayers.map((player) => ({ ...player, status: player.status || "Spieltag" }))
-    : [];
+  if (cacheIsFresh && cacheFitsCurrentMatchday) {
+    analysis.livePlayersMeta = {
+      source: "cache",
+      ownMatchdayPoints,
+      ownTotalPoints,
+      cachedAt: cache.generatedAt
+    };
+    return cachedPlayers.map((player) => ({
+      ...player,
+      status: "Spieltag"
+    }));
+  }
+
+  analysis.livePlayersMeta = {
+    source: "stale",
+    ownMatchdayPoints,
+    ownTotalPoints,
+    cachedAt: cache.generatedAt
+  };
+  return [];
 }
 
 function tacticRows(tactic) {
