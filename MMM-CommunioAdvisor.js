@@ -540,9 +540,6 @@
     if (["down", "fall", "falling", "decrease", "negative", "runter", "sinkt", "sinkend"].includes(trend)) {
       return "down";
     }
-    if (["flat", "same", "stable", "neutral", "gleich", "stabil"].includes(trend)) {
-      return "flat";
-    }
     return "";
   },
 

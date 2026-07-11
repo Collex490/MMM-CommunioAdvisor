@@ -262,7 +262,6 @@
     const trend = String(player.marketTrend || player.trend || "").trim().toLowerCase();
     if (["up", "rise", "rising", "increase", "positive", "hoch", "steigt", "steigend"].includes(trend)) return "up";
     if (["down", "fall", "falling", "decrease", "negative", "runter", "sinkt", "sinkend"].includes(trend)) return "down";
-    if (["flat", "same", "stable", "neutral", "gleich", "stabil"].includes(trend)) return "flat";
     return "";
   }
 
