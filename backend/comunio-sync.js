@@ -262,6 +262,12 @@ function directValueByKeys(item, keys) {
   return undefined;
 }
 
+function trendTextKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
 function normalizeMarketTrend(value) {
   if (value === undefined || value === null || value === "") return "";
   if (typeof value === "number") {
@@ -270,7 +276,7 @@ function normalizeMarketTrend(value) {
     return "flat";
   }
 
-  const normalized = normalizeText(value);
+  const normalized = trendTextKey(value);
   if (!normalized) return "";
 
   if (/^\+/.test(normalized)) return "up";
@@ -340,12 +346,12 @@ function extractMarketTrend(item) {
 function applySquadMarketTrends(squadPlayers, previousSquadPlayers) {
   const previousByName = new Map((previousSquadPlayers || [])
     .filter((player) => player?.name)
-    .map((player) => [normalizeText(player.name), numberish(player.marketValue)]));
+    .map((player) => [trendTextKey(player.name), numberish(player.marketValue)]));
 
   return (squadPlayers || []).map((player) => {
     if (!player?.name) return player;
     const currentValue = numberish(player.marketValue);
-    const previousValue = previousByName.get(normalizeText(player.name));
+    const previousValue = previousByName.get(trendTextKey(player.name));
     let marketTrend = player.marketTrend || "";
 
     if (!marketTrend && currentValue !== undefined && previousValue !== undefined) {
