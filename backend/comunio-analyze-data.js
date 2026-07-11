@@ -84,6 +84,9 @@ async function analyzeComunioRawData(payload) {
           "Verkaufskandidat und Startelf-Risiko sollen unterschiedliche Spieler sein, wenn mindestens zwei eigene Kaderspieler verfügbar sind.",
           "Budget-Hinweis soll den erkannten Kontostand praktisch einordnen: aggressiv bieten, Reserve halten, bewusst ins Minus gehen, erst verkaufen oder abwarten.",
           "Wenn der Kontostand negativ ist, berücksichtige: Nach Spieltagsbeginn kann Minus bis zum nächsten Spieltag taktisch genutzt werden, um Marktwertgewinn mitzunehmen; trotzdem rechtzeitig vor dem nächsten Spieltag ausgleichen.",
+          "transferTicker darf nur echte abgeschlossene Transfers aus latestStructuredData.transferTicker oder belegbaren News enthalten.",
+          "Schreibe niemals Platzhalter wie 'Noch keine Transfers', 'Screenshot per Telegram senden' oder 'Info' in transferTicker.",
+          "Wenn keine echten Transfernews belegt sind, lasse transferTicker als leeres Array; der bestehende API-Ticker bleibt erhalten.",
           "squadInsights.keep, squadInsights.sell und squadInsights.watch müssen kurze begruendete Sätze sein, nicht nur Spielernamen. Format pro Eintrag: 'Spieler: konkrete Begründung in maximal 16 Wörtern'.",
           "Nenne im Kader-Check nur Spieler, die im aktuellen Kader oder in der aktuellen Aufstellung vorkommen. Verkauft- oder Transfernews-Spieler duerfen dort nicht auftauchen, wenn sie nicht mehr im Kader stehen.",
           "Wenn es nur Login-/Fehlerseiten sind, lasse nicht belegbare Bereiche leer."

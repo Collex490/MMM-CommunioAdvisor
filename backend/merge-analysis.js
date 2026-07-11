@@ -369,6 +369,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     isFullApiScreen(screenType)
   );
   const budgetStatus = mergeBudgetStatus(previous.budgetStatus, incoming.budgetStatus, screenType);
+  const incomingTransfers = mergeTransfers([], incoming.transferTicker);
 
   if (isFullApiScreen(screenType) && !incoming.budgetStatus?.amount) {
     const budgetRecommendation = recommendationFromBudgetStatus(budgetStatus);
@@ -394,9 +395,13 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     standings: isFullApiScreen(screenType)
       ? incoming.standings || []
       : mergeStandings(previous.standings, incoming.standings),
-    transferTicker: isFullApiScreen(screenType)
-      ? mergeTransfers([], incoming.transferTicker)
-      : isTransferNewsScreen(screenType)
+    transferTicker: screenType === "api"
+      ? incomingTransfers
+      : screenType === "api-analysis"
+        ? incomingTransfers.length
+          ? incomingTransfers
+          : previous.transferTicker || []
+        : isTransferNewsScreen(screenType)
         ? mergeTransfers(previous.transferTicker, incoming.transferTicker)
         : previous.transferTicker || [],
     livePlayers: mergeLivePlayers(previous.livePlayers, incoming.livePlayers, incoming.standings, screenType),
