@@ -77,12 +77,27 @@ function recommendationFromMarketCandidate(candidate) {
     return null;
   }
 
-  const price = candidate.price ? ` Preis: ${candidate.price}.` : "";
-  const seller = candidate.seller ? ` Anbieter: ${candidate.seller}.` : "";
+  const reasons = [];
+  if (candidate.lastPoints !== undefined && candidate.lastPoints !== null) {
+    reasons.push(`${candidate.lastPoints} Punkte zuletzt sprechen für möglichen Marktwertschub`);
+  }
+  if (candidate.marketTrend === "up") {
+    reasons.push("Marktwerttrend zeigt nach oben");
+  }
+  if (candidate.reason) {
+    reasons.push(candidate.reason);
+  }
+  if (candidate.price) {
+    reasons.push(`Preis: ${candidate.price}`);
+  }
+  if (candidate.seller) {
+    reasons.push(`Anbieter: ${candidate.seller}`);
+  }
+
   return {
     player: candidate.player,
     title: "Kaufempfehlung",
-    reason: `${candidate.reason || "Bester sichtbarer Kandidat auf dem Transfermarkt."}${price}${seller}`.trim(),
+    reason: reasons.join(". "),
     confidence: "mittel"
   };
 }
@@ -106,7 +121,10 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
     "mittelfeld-joker",
     "rotationsverteidiger",
     "bankspieler",
-    "stammspieler"
+    "stammspieler",
+    "noch keine transfers",
+    "screenshot per telegram",
+    "telegram senden"
   ];
 
   return combined
@@ -119,6 +137,10 @@ function mergeTransfers(previousTransfers, incomingTransfers) {
       ].join(" ").toLowerCase();
 
       if (text.includes("listed") || text.includes("gelistet")) {
+        return false;
+      }
+
+      if (text.includes("info") && blockedPhrases.some((phrase) => text.includes(phrase))) {
         return false;
       }
 

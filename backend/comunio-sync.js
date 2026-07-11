@@ -763,12 +763,97 @@ function mapOffers(json) {
         price: formatMoney(firstValue(item.price, item.amount, item.value, objectMoney(player))),
         seller: seller || "Transfermarkt",
         isOwnListing: isOwnClubName(seller) || Boolean(item.isOwn || item.ownOffer || item.ownedByCurrentUser),
+        points: numberish(firstValue(item.points, item.totalPoints, item.score, player.points, player.totalPoints, player.score)),
+        lastPoints: numberish(firstValue(item.lastPoints, item.matchdayPoints, item.livePoints, player.lastPoints, player.matchdayPoints, player.livePoints)),
+        marketTrend: extractMarketTrend(item) || extractMarketTrend(player),
         reason: "Aktuelles Marktangebot mit sichtbarem Spieler und Preis.",
         priority: index + 1
       };
     })
     .filter((item) => item.player && normalizeText(item.player) !== "computer" && !item.isOwnListing)
     .slice(0, 12);
+}
+
+function buildBuyRecommendation(marketCandidates, squadPlayers) {
+  const ownNames = new Set((squadPlayers || []).map((player) => normalizeText(player.name)));
+  const weakestPlayer = [...(squadPlayers || [])]
+    .filter((player) => player?.name && normalizeText(player.name) !== "computer")
+    .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
+
+  const candidates = (marketCandidates || [])
+    .filter((candidate) => candidate?.player && !ownNames.has(normalizeText(candidate.player)))
+    .map((candidate) => {
+      const lastPoints = candidate.lastPoints ?? 0;
+      const points = candidate.points ?? 0;
+      const weakestPoints = weakestPlayer?.points ?? 0;
+      const isUpgrade = points > weakestPoints + 8;
+      const hasMomentum = lastPoints >= 6 || candidate.marketTrend === "up";
+      const score = (lastPoints * 5) + points + (candidate.marketTrend === "up" ? 12 : 0) + (isUpgrade ? 15 : 0);
+
+      return {
+        ...candidate,
+        isUpgrade,
+        hasMomentum,
+        score
+      };
+    })
+    .filter((candidate) => candidate.hasMomentum || candidate.isUpgrade)
+    .sort((a, b) => b.score - a.score);
+
+  const candidate = candidates[0];
+  if (!candidate) {
+    return {
+      title: "Keine Kaufempfehlung",
+      reason: "Aktuell kein fremdes Marktangebot mit klarem Formschub oder Upgrade-Potenzial.",
+      confidence: "hoch"
+    };
+  }
+
+  const reasons = [];
+  if (candidate.lastPoints !== undefined && candidate.lastPoints > 0) {
+    reasons.push(`${candidate.lastPoints} Punkte am Spieltag sprechen für kurzfristigen Marktwertschub`);
+  }
+  if (candidate.marketTrend === "up") {
+    reasons.push("Marktwerttrend zeigt nach oben");
+  }
+  if (candidate.isUpgrade && weakestPlayer?.name) {
+    reasons.push(`wirkt stärker als ${weakestPlayer.name} (${weakestPlayer.points ?? "-"} P)`);
+  }
+  if (candidate.price) {
+    reasons.push(`Preis ${candidate.price}`);
+  }
+
+  return {
+    player: candidate.player,
+    title: "Kaufempfehlung",
+    reason: `${reasons.join("; ")}.`,
+    confidence: candidate.hasMomentum && candidate.isUpgrade ? "hoch" : "mittel"
+  };
+}
+
+function buildBudgetRecommendation(budget) {
+  const budgetValue = numberish(budget);
+  if (!budget) {
+    return {
+      title: "Budget weiter per Telegram sichern",
+      reason: "Kontostand wurde in den API-Daten noch nicht sicher gefunden; Telegram-/Budget-Screenshot bleibt Backup.",
+      confidence: "mittel"
+    };
+  }
+
+  if (budgetValue !== undefined && budgetValue < 0) {
+    return {
+      title: "Minus bewusst steuern",
+      reason: `${budget} ist nach Spieltagsbeginn nutzbar, um Marktwertgewinn mitzunehmen; vor dem nächsten Spieltag rechtzeitig ausgleichen.`,
+      confidence: "hoch"
+    };
+  }
+
+  return {
+    title: "Budget gezielt einsetzen",
+    reason: `${budget} auf dem Konto: Formspieler und Marktwertchancen prüfen, aber Puffer für Nachkäufe behalten.`,
+    confidence: "hoch"
+  };
 }
 
 function collectText(value) {
@@ -1602,18 +1687,7 @@ function buildAnalysis(raw, generatedLineupImage) {
       captain: "Sorloth"
     },
     recommendations: {
-      buy: marketCandidates[0]
-        ? {
-            player: marketCandidates[0].player,
-            title: "Kaufempfehlung",
-            reason: `${marketCandidates[0].price ? `Bei ${marketCandidates[0].price} ` : ""}nur zuschlagen, wenn danach noch Reserve bleibt; als Marktchance gegen die Konkurrenz einplanen.`,
-            confidence: "mittel"
-          }
-        : {
-            title: "Keine Kaufempfehlung",
-            reason: "Aktuell kein fremdes Marktangebot attraktiv genug. Eigene Angebote nicht zurückkaufen; Budget halten und auf bessere Chancen warten.",
-            confidence: "hoch"
-          },
+      buy: buildBuyRecommendation(marketCandidates, squadPlayers),
       sell: lowestPointPlayer
         ? {
             player: lowestPointPlayer.name,
@@ -1630,13 +1704,7 @@ function buildAnalysis(raw, generatedLineupImage) {
             confidence: "mittel"
           }
         : undefined,
-      budget: {
-        title: budget ? "Budget gezielt einsetzen" : "Budget weiter per Telegram sichern",
-        reason: budget
-          ? `${budget} auf dem Konto: für einen Premium-Deal bieten, aber einen Puffer für Nachkäufe und Spieltagsreaktionen behalten.`
-          : "Kontostand wurde in den API-Daten noch nicht sicher gefunden; Telegram-/Budget-Screenshot bleibt Backup.",
-        confidence: budget ? "hoch" : "mittel"
-      }
+      budget: buildBudgetRecommendation(budget)
     },
     marketCandidates,
     standings,
