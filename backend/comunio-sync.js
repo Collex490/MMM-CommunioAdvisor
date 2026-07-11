@@ -457,6 +457,8 @@ function configuredUrls(apiBase) {
   const configuredFetchUrls = [
     env("COMMUNIO_API_FETCH_URLS"),
     env("COMMUNIO_FETCH_URLS"),
+    env("COMMUNIO_MARKET_URL"),
+    env("COMMUNIO_MARKET_URLS"),
     env("COMMUNIO_STANDINGS_TOTAL_URL"),
     env("COMMUNIO_STANDINGS_URL"),
     liveStandingsUrls.join(","),
@@ -470,6 +472,8 @@ function configuredUrls(apiBase) {
     userId ? `${apiBase}/users/${userId}/squad` : "",
     userId && communityId ? `${apiBase}/users/${userId}/squad?eid=${communityId}` : "",
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/offers?current` : "",
+    communityId ? `${apiBase}/communities/${communityId}/market` : "",
+    communityId ? `${apiBase}/communities/${communityId}/offers` : "",
     `${apiBase}/matchdays`,
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/news?group=true&originaltypes=true&start=0&limit=50&type=HIDDEN_NEWS` : "",
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/news?group=true&originaltypes=true&start=0&limit=20` : "",
@@ -524,6 +528,28 @@ function pagesByUrl(raw, part) {
   return raw.pages
     .filter((page) => page.url.includes(part) && page.status === 200 && page.json)
     .map((page) => page.json);
+}
+
+function marketPagesFromRaw(raw) {
+  return raw.pages
+    .filter((page) => {
+      if (page.status !== 200 || !page.json) return false;
+      return /\/offers\?current|\/market(?:\.json|\?|$|\/)|market\.json|\/communities\/[^/]+\/offers(?:\?|$)/i.test(page.url);
+    })
+    .map((page) => page.json);
+}
+
+function marketSourceSummary(raw) {
+  return raw.pages
+    .filter((page) => {
+      if (page.status !== 200 || !page.json) return false;
+      return /\/offers\?current|\/market(?:\.json|\?|$|\/)|market\.json|\/communities\/[^/]+\/offers(?:\?|$)/i.test(page.url);
+    })
+    .map((page) => {
+      const count = mapOffers(page.json).length;
+      return `${page.url.replace(/_=\d+/g, "*")} => ${count}`;
+    })
+    .join(" | ");
 }
 
 function bestArrayByScore(value, scorer) {
@@ -772,6 +798,18 @@ function mapOffers(json) {
     })
     .filter((item) => item.player && normalizeText(item.player) !== "computer" && !item.isOwnListing)
     .slice(0, 12);
+}
+
+function mapOffersFromSources(sources) {
+  const seen = new Set();
+  return sources
+    .flatMap((source) => mapOffers(source))
+    .filter((item) => {
+      const key = [item.player, item.price, item.seller].map((value) => normalizeText(value)).join("|");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 function buildBuyRecommendation(marketCandidates, squadPlayers) {
@@ -1644,13 +1682,13 @@ async function renderGeneratedLineup(raw, token) {
 function buildAnalysis(raw, generatedLineupImage) {
   const lineup = pageByUrl(raw, "/lineup");
   const squad = pageByUrl(raw, "/squad");
-  const offers = pageByUrl(raw, "/offers?current");
+  const marketSources = marketPagesFromRaw(raw);
   const news = raw.pages
     .filter((page) => page.status === 200 && page.url.includes("/news"))
     .map((page) => page.json);
   const squadPlayers = mapPlayers(squad);
   const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
-  const marketCandidates = mapOffers(offers)
+  const marketCandidates = mapOffersFromSources(marketSources)
     .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller));
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
@@ -1754,6 +1792,7 @@ async function main() {
   console.log(`Tabelle: ${analysis.standings.length}, Kaderhinweise: ${analysis.squadInsights.keep.length + analysis.squadInsights.sell.length}, Markt: ${analysis.marketCandidates.length}`);
   console.log(`Budget-Kandidaten: ${budgetCandidatesFromRaw(raw).slice(0, 6).map((candidate) => `${candidate.key}=${candidate.formatted} (${candidate.url})`).join(" | ") || "keine"}`);
   console.log(`Budget: ${analysis.budgetStatus?.amount || "nicht gefunden"}`);
+  console.log(`Marktquellen: ${marketSourceSummary(raw) || "keine"}`);
   console.log(`Transfernews: ${analysis.transferTicker.slice(0, 4).map((item) => item.text || `${item.action}: ${item.player}`).join(" | ") || "keine"}`);
   console.log(`Tabellenquellen: ${standingsSourceSummary(raw) || "keine"}`);
   console.log(`Tabellenstand: ${analysis.standings.map((team) => `${team.rank}. ${team.name} ${team.totalPoints ?? "-"}P`).join(" | ") || "keine"}`);
