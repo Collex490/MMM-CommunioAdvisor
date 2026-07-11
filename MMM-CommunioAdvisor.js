@@ -528,8 +528,22 @@
     return [
       this.formatPositionLabel(player.position),
       player.club,
-      player.status
+      this.formatPlayerStatus(player.status)
     ].filter(Boolean).join(" | ");
+  },
+
+  formatPlayerStatus(status) {
+    const value = String(status || "").toLowerCase();
+    if (["live", "running", "playing", "active", "inprogress", "in_progress"].includes(value)) {
+      return "live";
+    }
+    if (["spieltag", "cached", "final"].includes(value)) {
+      return "Spieltag";
+    }
+    if (value === "pre") {
+      return "wartet";
+    }
+    return status || "";
   },
 
   marketTrendClass(player) {
