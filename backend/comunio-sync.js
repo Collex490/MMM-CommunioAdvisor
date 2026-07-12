@@ -620,6 +620,10 @@ function mapStandings(json) {
       const totalPoints = rowIsLive && baseTotalPoints !== undefined
         ? baseTotalPoints + (livePoints || 0)
         : baseTotalPoints;
+      const rawMarketValue = firstValue(
+        directValueByKeys(item, ["marketvalue", "teamvalue"]),
+        item._embedded?.teamInfo?.teamValue
+      );
       return {
         rank: directNumberByKeys(item, ["rank", "position", "place"]) || index + 1,
         name,
@@ -627,10 +631,7 @@ function mapStandings(json) {
           ? (livePoints !== undefined ? livePoints : 0)
           : (matchdayPoints !== undefined ? matchdayPoints : totalPoints),
         totalPoints,
-        marketValue: formatMoney(firstValue(
-          directValueByKeys(item, ["marketvalue", "teamvalue"]),
-          item._embedded?.teamInfo?.teamValue
-        )),
+        marketValue: numberish(rawMarketValue) > 0 ? formatMoney(rawMarketValue) : "",
         isUserClub: normalizeText(name) === "pasta la vista fc"
       };
     })
@@ -682,7 +683,9 @@ function mapStandingsFromRaw(raw) {
     .filter((team) => knownClubs.includes(normalizeText(team.name)))
     .map((team) => ({
       ...team,
-      marketValue: team.marketValue || marketValues.get(normalizeText(team.name)) || ""
+      marketValue: numberish(team.marketValue) > 0
+        ? team.marketValue
+        : marketValues.get(normalizeText(team.name)) || ""
     }));
 }
 
@@ -732,7 +735,7 @@ function mapTeamMarketValues(raw) {
           "roster_value"
         ]);
 
-        if (value !== undefined && value !== null && value !== "") {
+        if (value !== undefined && value !== null && value !== "" && numberish(value) > 0) {
           values.set(normalized, formatMoney(value));
         }
       });
@@ -840,7 +843,15 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
       const weakestPoints = weakestPlayer?.points ?? 0;
       const isUpgrade = points > weakestPoints + 8;
       const hasMomentum = lastPoints >= 6 || candidate.marketTrend === "up";
-      const score = (lastPoints * 5) + points + (candidate.marketTrend === "up" ? 12 : 0) + (isUpgrade ? 15 : 0);
+      const priceValue = numberish(candidate.price) || 0;
+      const sellerBonus = normalizeText(candidate.seller) === "computer" ? 6 : 0;
+      const valuePenalty = priceValue > 15000000 ? 8 : priceValue > 10000000 ? 3 : 0;
+      const score = (lastPoints * 8)
+        + points
+        + (candidate.marketTrend === "up" ? 15 : 0)
+        + (isUpgrade ? 18 : 0)
+        + sellerBonus
+        - valuePenalty;
 
       return {
         ...candidate,
@@ -849,7 +860,6 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
         score
       };
     })
-    .filter((candidate) => candidate.hasMomentum || candidate.isUpgrade)
     .sort((a, b) => b.score - a.score);
 
   const candidate = candidates[0];
@@ -868,11 +878,20 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
   if (candidate.marketTrend === "up") {
     reasons.push("Marktwerttrend zeigt nach oben");
   }
+  if (candidate.points !== undefined && candidate.points > 0) {
+    reasons.push(`${candidate.points} Saisonpunkte zeigen Substanz`);
+  }
   if (candidate.isUpgrade && weakestPlayer?.name) {
     reasons.push(`wirkt stärker als ${weakestPlayer.name} (${weakestPlayer.points ?? "-"} P)`);
   }
+  if (candidate.seller && normalizeText(candidate.seller) !== "transfermarkt") {
+    reasons.push(`kommt von ${candidate.seller}`);
+  }
   if (candidate.price) {
     reasons.push(`Preis ${candidate.price}`);
+  }
+  if (!reasons.length) {
+    reasons.push("fremdes Marktangebot mit möglichem Upgrade- oder Marktwertpotenzial");
   }
 
   return {

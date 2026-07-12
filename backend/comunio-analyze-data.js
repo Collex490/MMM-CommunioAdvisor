@@ -56,6 +56,54 @@ function compactPayloadForAnalysis(rawPayload, currentData) {
   };
 }
 
+function recommendationFromMarketCandidate(candidate) {
+  if (!candidate?.player) {
+    return null;
+  }
+
+  const reasons = [];
+  if (candidate.lastPoints !== undefined && candidate.lastPoints !== null && candidate.lastPoints > 0) {
+    reasons.push(`${candidate.lastPoints} Punkte zuletzt sprechen für Marktwertfantasie`);
+  }
+  if (candidate.points !== undefined && candidate.points !== null && candidate.points > 0) {
+    reasons.push(`${candidate.points} Saisonpunkte zeigen Qualität`);
+  }
+  if (candidate.marketTrend === "up") {
+    reasons.push("Marktwerttrend zeigt nach oben");
+  }
+  if (candidate.reason) {
+    reasons.push(candidate.reason);
+  }
+  if (candidate.price) {
+    reasons.push(`Preis ${candidate.price}`);
+  }
+  if (candidate.seller) {
+    reasons.push(`Anbieter: ${candidate.seller}`);
+  }
+
+  return {
+    player: candidate.player,
+    title: "Kaufempfehlung",
+    reason: reasons.length
+      ? reasons.join(". ")
+      : "Fremdes Marktangebot mit möglichem Upgrade- oder Marktwertpotenzial.",
+    confidence: "mittel"
+  };
+}
+
+function isNoBuyRecommendation(recommendation) {
+  const text = [
+    recommendation?.player,
+    recommendation?.title,
+    recommendation?.reason
+  ].join(" ").toLowerCase();
+
+  return !recommendation
+    || text.includes("keine kaufempfehlung")
+    || text.includes("kein fremdes marktangebot")
+    || text.includes("keine passende kaufempfehlung");
+}
+
 async function analyzeComunioRawData(payload) {
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_TEXT_MODEL || process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
@@ -135,6 +183,15 @@ async function main() {
       confidence: "hoch"
     };
   }
+
+  if (currentData.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
+    const marketBuy = recommendationFromMarketCandidate(currentData.marketCandidates[0]);
+    if (marketBuy) {
+      analysis.recommendations = analysis.recommendations || {};
+      analysis.recommendations.buy = marketBuy;
+    }
+  }
+
   analysis.source = {
     platform: "Comunio",
     screenType: "api-analysis"
