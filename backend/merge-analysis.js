@@ -37,12 +37,14 @@ function hasUsefulRecommendation(recommendation) {
     "verkaufskandidat offen",
     "startelf-risiko offen",
     "budget-hinweis offen",
+    "keine kaufempfehlung",
+    "kein fremdes marktangebot",
+    "keine passende kaufempfehlung",
     "api geladen",
     "per api geladen",
     "chatgpt-analyse",
     "auf dem markt sichtbar",
-    "preis prüfen",
-    "preis prüfen"
+    "computer ist aktuell auf dem markt sichtbar"
   ];
 
   if (blockedPhrases.some((phrase) => text.includes(phrase))) {
@@ -111,6 +113,49 @@ function recommendationFromBudgetStatus(budgetStatus) {
     title: "Budget gezielt einsetzen",
     reason: `Mit ${budgetStatus.amount} nur selektiv bieten und Reserve für Nachkäufe halten.`,
     confidence: "hoch"
+  };
+}
+
+function isMarketLikeRumor(rumorKitchen, marketCandidates) {
+  const text = [
+    rumorKitchen?.headline,
+    rumorKitchen?.body,
+    rumorKitchen?.detail
+  ].join(" ").toLowerCase();
+
+  if (!text.trim()) {
+    return false;
+  }
+
+  const marketNames = (marketCandidates || [])
+    .map((candidate) => String(candidate?.player || "").trim().toLowerCase())
+    .filter(Boolean);
+
+  const marketWords = [
+    "kaufempfehlung",
+    "marktgriff",
+    "marktangebot",
+    "upgrade-chance",
+    "wertzuwachs",
+    "kaderhilfe",
+    "preis mit",
+    "sofortoption"
+  ];
+
+  return marketWords.some((word) => text.includes(word))
+    || marketNames.some((name) => name && text.includes(name));
+}
+
+function fallbackRumorKitchen(budgetStatus) {
+  const isNegativeBudget = String(budgetStatus?.amount || "").trim().startsWith("-");
+
+  return {
+    headline: isNegativeBudget
+      ? "Pasta La Vista FC lässt die Rechenmaschine rauchen"
+      : "Pasta La Vista FC hält die Markt-Tür einen Spalt offen",
+    body: isNegativeBudget
+      ? "Patron Co ordnet Kassenruhe an, während Gattuso im Training mehr Disziplin fordert. Die Konkurrenz wittert Nervosität, doch die gold-schwarze Zentrale bleibt wach."
+      : "Patron Co prüft die Lage mit ruhiger Hand, während Gattuso mehr Biss im Kader fordert. Sporting und Squadra beobachten jede Bewegung im gold-schwarzen Büro."
   };
 }
 
@@ -378,12 +423,16 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     }
   }
 
-  if (screenType === "transfermarket" && !hasUsefulRecommendation(recommendations.buy)) {
+  if ((screenType === "transfermarket" || isFullApiScreen(screenType)) && !hasUsefulRecommendation(recommendations.buy)) {
     const buyFromMarket = recommendationFromMarketCandidate(marketCandidates[0]);
     if (buyFromMarket) {
       recommendations.buy = buyFromMarket;
     }
   }
+
+  const rumorKitchen = isMarketLikeRumor(incoming.rumorKitchen, marketCandidates)
+    ? fallbackRumorKitchen(budgetStatus)
+    : incoming.rumorKitchen || previous.rumorKitchen;
 
   return {
     ...previous,
@@ -414,7 +463,7 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
       ? incoming.squadInsights
       : mergeSquadInsights(previous.squadInsights, incoming.squadInsights),
     lineupImage: incoming.lineupImage?.url ? incoming.lineupImage : previous.lineupImage,
-    rumorKitchen: incoming.rumorKitchen || previous.rumorKitchen,
+    rumorKitchen,
     rumorImage: incoming.rumorImage?.url ? incoming.rumorImage : previous.rumorImage,
     lastScreenType: screenType,
     generatedAt: incoming.generatedAt || new Date().toISOString()

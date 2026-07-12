@@ -164,11 +164,24 @@ async function main() {
   const currentData = await readJsonIfExists(dataPath, {});
   const payload = compactPayloadForAnalysis(rawPayload, currentData);
   const analysis = normalizeAnalysis(await analyzeComunioRawData(payload));
-  const marketNames = new Set((currentData.marketCandidates || []).map((candidate) => normalizeName(candidate.player)));
+
+  analysis.marketCandidates = currentData.marketCandidates?.length
+    ? currentData.marketCandidates
+    : analysis.marketCandidates || [];
+  analysis.standings = currentData.standings?.length ? currentData.standings : analysis.standings || [];
+  analysis.transferTicker = currentData.transferTicker?.length ? currentData.transferTicker : analysis.transferTicker || [];
+  analysis.budgetStatus = currentData.budgetStatus?.amount
+    ? currentData.budgetStatus
+    : analysis.budgetStatus;
+  analysis.livePlayers = currentData.livePlayers || analysis.livePlayers || [];
+  analysis.squadPlayers = currentData.squadPlayers || analysis.squadPlayers || [];
+  analysis.lineupImage = currentData.lineupImage || analysis.lineupImage;
+
+  const marketNames = new Set((analysis.marketCandidates || []).map((candidate) => normalizeName(candidate.player)));
   const ownNames = new Set((currentData.squadPlayers || []).map((player) => normalizeName(player.name)));
   const buyName = normalizeName(analysis.recommendations?.buy?.player);
 
-  if (!analysis.marketCandidates?.length && !currentData.marketCandidates?.length) {
+  if (!analysis.marketCandidates?.length) {
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buy = {
       title: "Keine Kaufempfehlung",
@@ -176,21 +189,23 @@ async function main() {
       confidence: "hoch"
     };
   } else if (buyName && (ownNames.has(buyName) || !marketNames.has(buyName))) {
+    const marketBuy = recommendationFromMarketCandidate(analysis.marketCandidates[0]);
     analysis.recommendations = analysis.recommendations || {};
-    analysis.recommendations.buy = currentData.recommendations?.buy || {
+    analysis.recommendations.buy = marketBuy || {
       title: "Keine Kaufempfehlung",
       reason: "Aktuell kein fremdes Marktangebot mit klarem Formschub oder Upgrade-Potenzial.",
       confidence: "hoch"
     };
   }
 
-  if (currentData.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
-    const marketBuy = recommendationFromMarketCandidate(currentData.marketCandidates[0]);
+  if (analysis.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
+    const marketBuy = recommendationFromMarketCandidate(analysis.marketCandidates[0]);
     if (marketBuy) {
       analysis.recommendations = analysis.recommendations || {};
       analysis.recommendations.buy = marketBuy;
     }
   }
+
 
   analysis.source = {
     platform: "Comunio",

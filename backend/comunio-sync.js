@@ -67,6 +67,10 @@ function tokenFromPayload(payload) {
 
 function formatMoney(value) {
   if (value === null || value === undefined || value === "") return "";
+  const parsed = parseMoneyValue(value);
+  if (parsed !== null) {
+    return `${Math.round(parsed).toLocaleString("de-DE")} \u20ac`;
+  }
   const formatted = typeof value === "number" && Number.isFinite(value)
     ? Math.round(value).toLocaleString("de-DE")
     : String(value).trim();
@@ -622,7 +626,12 @@ function mapStandings(json) {
         : baseTotalPoints;
       const rawMarketValue = firstValue(
         directValueByKeys(item, ["marketvalue", "teamvalue"]),
-        item._embedded?.teamInfo?.teamValue
+        item._embedded?.teamInfo?.marketValue,
+        item._embedded?.teamInfo?.teamValue,
+        item._embedded?.user?.marketValue,
+        item._embedded?.user?.teamValue,
+        item.user?.marketValue,
+        item.user?.teamValue
       );
       return {
         rank: directNumberByKeys(item, ["rank", "position", "place"]) || index + 1,
@@ -724,16 +733,24 @@ function mapTeamMarketValues(raw) {
         const normalized = normalizeText(name);
         if (!knownClubs.includes(normalized)) return;
 
-        const value = directValueByKeys(item, [
-          "marketvalue",
-          "market_value",
-          "teamvalue",
-          "team_value",
-          "squadvalue",
-          "squad_value",
-          "rostervalue",
-          "roster_value"
-        ]);
+        const value = firstValue(
+          directValueByKeys(item, [
+            "marketvalue",
+            "market_value",
+            "teamvalue",
+            "team_value",
+            "squadvalue",
+            "squad_value",
+            "rostervalue",
+            "roster_value"
+          ]),
+          item._embedded?.teamInfo?.marketValue,
+          item._embedded?.teamInfo?.teamValue,
+          item._embedded?.user?.marketValue,
+          item._embedded?.user?.teamValue,
+          item.user?.marketValue,
+          item.user?.teamValue
+        );
 
         if (value !== undefined && value !== null && value !== "" && numberish(value) > 0) {
           values.set(normalized, formatMoney(value));
