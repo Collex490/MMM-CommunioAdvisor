@@ -1,6 +1,7 @@
 ﻿Module.register("MMM-CommunioAdvisor", {
   defaults: {
     updateInterval: 5 * 60 * 1000,
+    buyRotationInterval: 20 * 1000,
     dataFile: "modules/MMM-CommunioAdvisor/data/latest.json",
     title: "WM Comunio",
     clubName: "Pasta La Vista FC",
@@ -19,6 +20,7 @@
     this.analysis = null;
     this.error = null;
     this.loaded = false;
+    this.rotationStartedAt = Date.now();
     this.getAnalysis();
     this.scheduleUpdate();
   },
@@ -32,11 +34,13 @@
       this.getAnalysis();
     }, this.config.updateInterval);
 
+    const rotationInterval = Math.max(5 * 1000, this.config.buyRotationInterval || 20 * 1000);
+
     setInterval(() => {
       if (this.loaded && !this.error) {
         this.updateDom(400);
       }
-    }, 60 * 1000);
+    }, rotationInterval);
   },
 
   getAnalysis() {
@@ -200,6 +204,8 @@
       };
     }
 
+    recommendations.buy = this.getRotatingBuyRecommendation(data, recommendations.buy);
+
     if (!this.hasRecommendation(recommendations.sell)) {
       recommendations.sell = this.recommendationFromInsight(
         data.squadInsights?.sell?.[0],
@@ -228,6 +234,19 @@
     }
 
     return recommendations;
+  },
+
+  getRotatingBuyRecommendation(data, fallbackBuy) {
+    const views = (data.recommendations?.buyViews || []).filter((item) => this.hasRecommendation(item));
+    if (!views.length) {
+      return fallbackBuy;
+    }
+
+    const interval = Math.max(5 * 1000, this.config.buyRotationInterval || 20 * 1000);
+    const startedAt = this.rotationStartedAt || Date.now();
+    const index = Math.floor((Date.now() - startedAt) / interval) % views.length;
+
+    return views[index] || fallbackBuy;
   },
 
   hasRecommendation(item) {
@@ -273,7 +292,7 @@
 
     const cardLabel = document.createElement("div");
     cardLabel.className = "communio-advisor__card-label";
-    cardLabel.textContent = label;
+    cardLabel.textContent = item?.sourceLabel ? `${label} · ${item.sourceLabel}` : label;
 
     const name = document.createElement("div");
     name.className = "communio-advisor__card-name";
