@@ -459,6 +459,7 @@ function configuredUrls(apiBase) {
     env("COMMUNIO_FETCH_URLS"),
     env("COMMUNIO_MARKET_URL"),
     env("COMMUNIO_MARKET_URLS"),
+    env("COMMUNIO_EXCHANGE_MARKET_URL"),
     env("COMMUNIO_STANDINGS_TOTAL_URL"),
     env("COMMUNIO_STANDINGS_URL"),
     liveStandingsUrls.join(","),
@@ -472,6 +473,7 @@ function configuredUrls(apiBase) {
     userId ? `${apiBase}/users/${userId}/squad` : "",
     userId && communityId ? `${apiBase}/users/${userId}/squad?eid=${communityId}` : "",
     communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/offers?current` : "",
+    communityId && userId ? `${apiBase}/communities/${communityId}/users/${userId}/exchangemarket` : "",
     communityId ? `${apiBase}/communities/${communityId}/market` : "",
     communityId ? `${apiBase}/communities/${communityId}/offers` : "",
     `${apiBase}/matchdays`,
@@ -534,7 +536,7 @@ function marketPagesFromRaw(raw) {
   return raw.pages
     .filter((page) => {
       if (page.status !== 200 || !page.json) return false;
-      return /\/offers\?current|\/market(?:\.json|\?|$|\/)|market\.json|\/communities\/[^/]+\/offers(?:\?|$)/i.test(page.url);
+      return /\/exchangemarket(?:\?|$|\/)|\/offers\?current|\/market(?:\.json|\?|$|\/)|market\.json|\/communities\/[^/]+\/offers(?:\?|$)/i.test(page.url);
     })
     .map((page) => page.json);
 }
@@ -543,7 +545,7 @@ function marketSourceSummary(raw) {
   return raw.pages
     .filter((page) => {
       if (page.status !== 200 || !page.json) return false;
-      return /\/offers\?current|\/market(?:\.json|\?|$|\/)|market\.json|\/communities\/[^/]+\/offers(?:\?|$)/i.test(page.url);
+      return /\/exchangemarket(?:\?|$|\/)|\/offers\?current|\/market(?:\.json|\?|$|\/)|market\.json|\/communities\/[^/]+\/offers(?:\?|$)/i.test(page.url);
     })
     .map((page) => {
       const count = mapOffers(page.json).length;
@@ -772,6 +774,7 @@ function mapPlayers(json) {
 }
 
 function mapOffers(json) {
+  const currentUserId = env("COMMUNIO_USER_ID");
   const items = bestArrayByScore(json, (item) => {
     if (!item || typeof item !== "object") return 0;
     const tradable = item.tradable || item._embedded?.tradable || item.player || item._embedded?.player || item;
@@ -783,12 +786,23 @@ function mapOffers(json) {
     .map((item, index) => {
       const player = item.tradable || item._embedded?.tradable || item.player || item._embedded?.player || item;
       const playerName = objectName(player);
-      const seller = objectName(item.seller || item.owner || item.user || item.from || item._embedded?.seller || {});
+      const owner = item.seller || item.owner || item.user || item.from || item._embedded?.seller || item._embedded?.owner || {};
+      const seller = objectName(owner);
+      const ownerId = firstValue(owner.id, item.ownerId, item.userId, item._links?.owner?.href?.match(/\/users\/(\d+)/)?.[1]);
       return {
         player: playerName,
-        price: formatMoney(firstValue(item.price, item.amount, item.value, objectMoney(player))),
+        price: formatMoney(firstValue(
+          item.price,
+          item.amount,
+          item.value,
+          player.quotedPrice,
+          player.recommendedPrice,
+          objectMoney(player)
+        )),
         seller: seller || "Transfermarkt",
-        isOwnListing: isOwnClubName(seller) || Boolean(item.isOwn || item.ownOffer || item.ownedByCurrentUser),
+        isOwnListing: isOwnClubName(seller)
+          || (currentUserId && String(ownerId || "") === String(currentUserId))
+          || Boolean(item.isOwn || item.ownOffer || item.ownedByCurrentUser),
         points: numberish(firstValue(item.points, item.totalPoints, item.score, player.points, player.totalPoints, player.score)),
         lastPoints: numberish(firstValue(item.lastPoints, item.matchdayPoints, item.livePoints, player.lastPoints, player.matchdayPoints, player.livePoints)),
         marketTrend: extractMarketTrend(item) || extractMarketTrend(player),
