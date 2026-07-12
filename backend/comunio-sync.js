@@ -825,8 +825,10 @@ function mapOffers(json) {
           || Boolean(item.isOwn || item.ownOffer || item.ownedByCurrentUser),
         points: numberish(firstValue(item.points, item.totalPoints, item.score, player.points, player.totalPoints, player.score)),
         lastPoints: numberish(firstValue(item.lastPoints, item.matchdayPoints, item.livePoints, player.lastPoints, player.matchdayPoints, player.livePoints)),
+        livePoints: numberish(firstValue(item.livePoints, player.livePoints)),
+        position: firstValue(item.position, item.role, player.position, player.role, player.type, ""),
         marketTrend: extractMarketTrend(item) || extractMarketTrend(player),
-        reason: "Aktuelles Marktangebot mit sichtbarem Spieler und Preis.",
+        reason: "Aktuelles Marktangebot aus Comunio.",
         priority: index + 1
       };
     })
@@ -851,22 +853,33 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
   const weakestPlayer = [...(squadPlayers || [])]
     .filter((player) => player?.name && normalizeText(player.name) !== "computer")
     .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
+  const positionBonus = (candidate) => {
+    const position = normalizeText(firstValue(candidate.position, candidate.role, ""));
+    if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) return 22;
+    if (position.includes("midfielder") || position.includes("mittel")) return 14;
+    if (position.includes("defender") || position.includes("abwehr")) return 6;
+    return 0;
+  };
 
   const candidates = (marketCandidates || [])
     .filter((candidate) => candidate?.player && !ownNames.has(normalizeText(candidate.player)))
     .map((candidate) => {
-      const lastPoints = candidate.lastPoints ?? 0;
-      const points = candidate.points ?? 0;
+      const livePoints = numberish(candidate.livePoints) ?? 0;
+      const lastPoints = numberish(candidate.lastPoints) ?? 0;
+      const points = numberish(candidate.points) ?? 0;
       const weakestPoints = weakestPlayer?.points ?? 0;
       const isUpgrade = points > weakestPoints + 8;
-      const hasMomentum = lastPoints >= 6 || candidate.marketTrend === "up";
+      const hasMomentum = livePoints >= 4 || lastPoints >= 6 || candidate.marketTrend === "up";
       const priceValue = numberish(candidate.price) || 0;
-      const sellerBonus = normalizeText(candidate.seller) === "computer" ? 6 : 0;
-      const valuePenalty = priceValue > 15000000 ? 8 : priceValue > 10000000 ? 3 : 0;
-      const score = (lastPoints * 8)
-        + points
-        + (candidate.marketTrend === "up" ? 15 : 0)
-        + (isUpgrade ? 18 : 0)
+      const sellerBonus = normalizeText(candidate.seller) === "computer" ? 4 : 0;
+      const valuePenalty = priceValue > 18000000 ? 12 : priceValue > 13000000 ? 6 : 0;
+      const noOutputPenalty = !livePoints && !lastPoints && !points && candidate.marketTrend !== "up" ? 55 : 0;
+      const score = (livePoints * 11)
+        + (lastPoints * 9)
+        + Math.min(points, 180)
+        + positionBonus(candidate)
+        + (candidate.marketTrend === "up" ? 28 : 0)
+        + (isUpgrade ? 24 : 0)
         + sellerBonus
         - valuePenalty;
 
@@ -874,7 +887,7 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
         ...candidate,
         isUpgrade,
         hasMomentum,
-        score
+        score: score - noOutputPenalty
       };
     })
     .sort((a, b) => b.score - a.score);
@@ -889,6 +902,9 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
   }
 
   const reasons = [];
+  if (candidate.livePoints !== undefined && candidate.livePoints > 0) {
+    reasons.push(`${candidate.livePoints} Livepunkte sprechen für direkten Formschub`);
+  }
   if (candidate.lastPoints !== undefined && candidate.lastPoints > 0) {
     reasons.push(`${candidate.lastPoints} Punkte am Spieltag sprechen für kurzfristigen Marktwertschub`);
   }

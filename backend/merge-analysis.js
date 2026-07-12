@@ -74,14 +74,65 @@ function mergeRecommendations(previous, incoming, replacePrevious = false) {
   return result;
 }
 
+function normalizeName(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function numericValue(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const cleaned = String(value || "")
+    .replace(/[^\d,-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function marketCandidateScore(candidate, squadPlayers = []) {
+  const ownNames = new Set((squadPlayers || []).map((player) => normalizeName(player.name)));
+  if (!candidate?.player || ownNames.has(normalizeName(candidate.player))) return -9999;
+
+  const livePoints = numericValue(candidate.livePoints);
+  const lastPoints = numericValue(candidate.lastPoints);
+  const points = numericValue(candidate.points);
+  const price = numericValue(candidate.price);
+  const position = normalizeName(candidate.position || candidate.role);
+  const ownPointValues = (squadPlayers || [])
+    .map((player) => numericValue(player.points))
+    .filter((pointsValue) => pointsValue > 0);
+  const weakestPoints = ownPointValues.length ? Math.min(...ownPointValues) : 9999;
+
+  let score = Math.min(points, 180) + (lastPoints * 9) + (livePoints * 11);
+  if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) score += 22;
+  if (position.includes("midfielder") || position.includes("mittel")) score += 14;
+  if (candidate.marketTrend === "up") score += 28;
+  if (weakestPoints !== 9999 && points > weakestPoints + 8) score += 24;
+  if (price > 18000000) score -= 12;
+  if (price > 13000000) score -= 6;
+  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 55;
+  return score;
+}
+
+function bestMarketCandidate(marketCandidates = [], squadPlayers = []) {
+  return [...(marketCandidates || [])]
+    .filter((candidate) => candidate?.player)
+    .sort((a, b) => marketCandidateScore(b, squadPlayers) - marketCandidateScore(a, squadPlayers))[0];
+}
+
 function recommendationFromMarketCandidate(candidate) {
   if (!candidate?.player) {
     return null;
   }
 
   const reasons = [];
-  if (candidate.lastPoints !== undefined && candidate.lastPoints !== null) {
+  if (numericValue(candidate.livePoints) > 0) {
+    reasons.push(`${candidate.livePoints} Livepunkte sprechen für direkten Formschub`);
+  }
+  if (candidate.lastPoints !== undefined && candidate.lastPoints !== null && numericValue(candidate.lastPoints) > 0) {
     reasons.push(`${candidate.lastPoints} Punkte zuletzt sprechen für möglichen Marktwertschub`);
+  }
+  if (candidate.points !== undefined && candidate.points !== null && numericValue(candidate.points) > 0) {
+    reasons.push(`${candidate.points} Saisonpunkte zeigen Qualität`);
   }
   if (candidate.marketTrend === "up") {
     reasons.push("Marktwerttrend zeigt nach oben");
@@ -99,7 +150,7 @@ function recommendationFromMarketCandidate(candidate) {
   return {
     player: candidate.player,
     title: "Kaufempfehlung",
-    reason: reasons.join(". "),
+    reason: reasons.length ? reasons.join(". ") : "Fremdes Marktangebot mit möglichem Upgrade- oder Marktwertpotenzial.",
     confidence: "mittel"
   };
 }
@@ -424,7 +475,8 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
   }
 
   if ((screenType === "transfermarket" || isFullApiScreen(screenType)) && !hasUsefulRecommendation(recommendations.buy)) {
-    const buyFromMarket = recommendationFromMarketCandidate(marketCandidates[0]);
+    const squadPlayers = incoming.squadPlayers?.length ? incoming.squadPlayers : previous.squadPlayers || [];
+    const buyFromMarket = recommendationFromMarketCandidate(bestMarketCandidate(marketCandidates, squadPlayers));
     if (buyFromMarket) {
       recommendations.buy = buyFromMarket;
     }

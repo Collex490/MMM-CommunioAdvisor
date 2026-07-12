@@ -56,16 +56,62 @@ function compactPayloadForAnalysis(rawPayload, currentData) {
   };
 }
 
+function numericValue(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const cleaned = String(value || "")
+    .replace(/[^\d,-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function marketCandidateScore(candidate, squadPlayers = []) {
+  const ownNames = new Set((squadPlayers || []).map((player) => normalizeName(player.name)));
+  if (!candidate?.player || ownNames.has(normalizeName(candidate.player))) return -9999;
+
+  const livePoints = numericValue(candidate.livePoints);
+  const lastPoints = numericValue(candidate.lastPoints);
+  const points = numericValue(candidate.points);
+  const price = numericValue(candidate.price);
+  const position = normalizeName(candidate.position || candidate.role);
+  const weakestPoints = Math.min(
+    ...((squadPlayers || [])
+      .map((player) => numericValue(player.points))
+      .filter((pointsValue) => pointsValue > 0)),
+    9999
+  );
+
+  let score = Math.min(points, 180) + (lastPoints * 9) + (livePoints * 11);
+  if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) score += 22;
+  if (position.includes("midfielder") || position.includes("mittel")) score += 14;
+  if (candidate.marketTrend === "up") score += 28;
+  if (weakestPoints !== 9999 && points > weakestPoints + 8) score += 24;
+  if (price > 18000000) score -= 12;
+  if (price > 13000000) score -= 6;
+  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 55;
+  return score;
+}
+
+function bestMarketCandidate(marketCandidates = [], squadPlayers = []) {
+  return [...(marketCandidates || [])]
+    .filter((candidate) => candidate?.player)
+    .sort((a, b) => marketCandidateScore(b, squadPlayers) - marketCandidateScore(a, squadPlayers))[0];
+}
+
 function recommendationFromMarketCandidate(candidate) {
   if (!candidate?.player) {
     return null;
   }
 
   const reasons = [];
-  if (candidate.lastPoints !== undefined && candidate.lastPoints !== null && candidate.lastPoints > 0) {
+  if (numericValue(candidate.livePoints) > 0) {
+    reasons.push(`${candidate.livePoints} Livepunkte sprechen für direkten Formschub`);
+  }
+  if (candidate.lastPoints !== undefined && candidate.lastPoints !== null && numericValue(candidate.lastPoints) > 0) {
     reasons.push(`${candidate.lastPoints} Punkte zuletzt sprechen für Marktwertfantasie`);
   }
-  if (candidate.points !== undefined && candidate.points !== null && candidate.points > 0) {
+  if (candidate.points !== undefined && candidate.points !== null && numericValue(candidate.points) > 0) {
     reasons.push(`${candidate.points} Saisonpunkte zeigen Qualität`);
   }
   if (candidate.marketTrend === "up") {
@@ -180,6 +226,7 @@ async function main() {
   const marketNames = new Set((analysis.marketCandidates || []).map((candidate) => normalizeName(candidate.player)));
   const ownNames = new Set((currentData.squadPlayers || []).map((player) => normalizeName(player.name)));
   const buyName = normalizeName(analysis.recommendations?.buy?.player);
+  const preferredMarketCandidate = bestMarketCandidate(analysis.marketCandidates, currentData.squadPlayers);
 
   if (!analysis.marketCandidates?.length) {
     analysis.recommendations = analysis.recommendations || {};
@@ -189,7 +236,7 @@ async function main() {
       confidence: "hoch"
     };
   } else if (buyName && (ownNames.has(buyName) || !marketNames.has(buyName))) {
-    const marketBuy = recommendationFromMarketCandidate(analysis.marketCandidates[0]);
+    const marketBuy = recommendationFromMarketCandidate(preferredMarketCandidate);
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buy = marketBuy || {
       title: "Keine Kaufempfehlung",
@@ -199,7 +246,7 @@ async function main() {
   }
 
   if (analysis.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
-    const marketBuy = recommendationFromMarketCandidate(analysis.marketCandidates[0]);
+    const marketBuy = recommendationFromMarketCandidate(preferredMarketCandidate);
     if (marketBuy) {
       analysis.recommendations = analysis.recommendations || {};
       analysis.recommendations.buy = marketBuy;
