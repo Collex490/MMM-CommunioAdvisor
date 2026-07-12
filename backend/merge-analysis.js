@@ -78,6 +78,10 @@ function normalizeName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeText(value) {
+  return normalizeName(value);
+}
+
 function numericValue(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const cleaned = String(value || "")
@@ -102,14 +106,19 @@ function marketCandidateScore(candidate, squadPlayers = []) {
     .filter((pointsValue) => pointsValue > 0);
   const weakestPoints = ownPointValues.length ? Math.min(...ownPointValues) : 9999;
 
-  let score = Math.min(points, 180) + (lastPoints * 9) + (livePoints * 11);
+  const isUpgrade = weakestPoints !== 9999 && points > weakestPoints + 8;
+  const hasSubstance = livePoints > 0 || lastPoints > 0 || points >= 20 || candidate.marketTrend === "up" || isUpgrade;
+
+  let score = Math.min(points, 220) + (lastPoints * 12) + (livePoints * 14);
   if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) score += 22;
   if (position.includes("midfielder") || position.includes("mittel")) score += 14;
-  if (candidate.marketTrend === "up") score += 28;
-  if (weakestPoints !== 9999 && points > weakestPoints + 8) score += 24;
-  if (price > 18000000) score -= 12;
-  if (price > 13000000) score -= 6;
-  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 55;
+  if (candidate.marketTrend === "up") score += 30;
+  if (isUpgrade) score += 28;
+  if (price > 18000000) score -= 14;
+  if (price > 13000000) score -= 8;
+  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 120;
+  if (points > 0 && points < 10 && !livePoints && !lastPoints && candidate.marketTrend !== "up") score -= 45;
+  if (!hasSubstance) score -= 30;
   return score;
 }
 
@@ -153,6 +162,53 @@ function recommendationFromMarketCandidate(candidate) {
     reason: reasons.length ? reasons.join(". ") : "Fremdes Marktangebot mit möglichem Upgrade- oder Marktwertpotenzial.",
     confidence: "mittel"
   };
+}
+
+function marketCandidateSource(candidate) {
+  const seller = normalizeName([
+    candidate?.seller,
+    candidate?.sellerName,
+    candidate?.owner,
+    candidate?.ownerName,
+    candidate?.provider,
+    candidate?.club
+  ].find(Boolean));
+
+  return seller.includes("computer") ? "computer" : "manager";
+}
+
+function buildBuyViews(marketCandidates = [], squadPlayers = []) {
+  const views = [
+    {
+      source: "manager",
+      sourceLabel: "Manager-Markt",
+      candidate: bestMarketCandidate(
+        marketCandidates.filter((candidate) => marketCandidateSource(candidate) !== "computer"),
+        squadPlayers
+      )
+    },
+    {
+      source: "computer",
+      sourceLabel: "Computer-Markt",
+      candidate: bestMarketCandidate(
+        marketCandidates.filter((candidate) => marketCandidateSource(candidate) === "computer"),
+        squadPlayers
+      )
+    }
+  ];
+
+  return views
+    .map((view) => {
+      const recommendation = recommendationFromMarketCandidate(view.candidate);
+      return recommendation
+        ? {
+            ...recommendation,
+            source: view.source,
+            sourceLabel: view.sourceLabel
+          }
+        : null;
+    })
+    .filter(Boolean);
 }
 
 function recommendationFromBudgetStatus(budgetStatus) {
@@ -474,11 +530,17 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
     }
   }
 
-  if ((screenType === "transfermarket" || isFullApiScreen(screenType)) && !hasUsefulRecommendation(recommendations.buy)) {
+  if (screenType === "transfermarket" || isFullApiScreen(screenType)) {
     const squadPlayers = incoming.squadPlayers?.length ? incoming.squadPlayers : previous.squadPlayers || [];
-    const buyFromMarket = recommendationFromMarketCandidate(bestMarketCandidate(marketCandidates, squadPlayers));
-    if (buyFromMarket) {
-      recommendations.buy = buyFromMarket;
+    const buyViews = buildBuyViews(marketCandidates, squadPlayers);
+    if (buyViews.length) {
+      recommendations.buyViews = buyViews;
+      recommendations.buy = buyViews[0];
+    } else if (!hasUsefulRecommendation(recommendations.buy)) {
+      const buyFromMarket = recommendationFromMarketCandidate(bestMarketCandidate(marketCandidates, squadPlayers));
+      if (buyFromMarket) {
+        recommendations.buy = buyFromMarket;
+      }
     }
   }
 

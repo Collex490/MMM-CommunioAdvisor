@@ -82,14 +82,19 @@ function marketCandidateScore(candidate, squadPlayers = []) {
     9999
   );
 
-  let score = Math.min(points, 180) + (lastPoints * 9) + (livePoints * 11);
+  const isUpgrade = weakestPoints !== 9999 && points > weakestPoints + 8;
+  const hasSubstance = livePoints > 0 || lastPoints > 0 || points >= 20 || candidate.marketTrend === "up" || isUpgrade;
+
+  let score = Math.min(points, 220) + (lastPoints * 12) + (livePoints * 14);
   if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) score += 22;
   if (position.includes("midfielder") || position.includes("mittel")) score += 14;
-  if (candidate.marketTrend === "up") score += 28;
-  if (weakestPoints !== 9999 && points > weakestPoints + 8) score += 24;
-  if (price > 18000000) score -= 12;
-  if (price > 13000000) score -= 6;
-  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 55;
+  if (candidate.marketTrend === "up") score += 30;
+  if (isUpgrade) score += 28;
+  if (price > 18000000) score -= 14;
+  if (price > 13000000) score -= 8;
+  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 120;
+  if (points > 0 && points < 10 && !livePoints && !lastPoints && candidate.marketTrend !== "up") score -= 45;
+  if (!hasSubstance) score -= 30;
   return score;
 }
 
@@ -135,6 +140,53 @@ function recommendationFromMarketCandidate(candidate) {
       : "Fremdes Marktangebot mit möglichem Upgrade- oder Marktwertpotenzial.",
     confidence: "mittel"
   };
+}
+
+function marketCandidateSource(candidate) {
+  const seller = normalizeName([
+    candidate?.seller,
+    candidate?.sellerName,
+    candidate?.owner,
+    candidate?.ownerName,
+    candidate?.provider,
+    candidate?.club
+  ].find(Boolean));
+
+  return seller.includes("computer") ? "computer" : "manager";
+}
+
+function buildBuyViews(marketCandidates = [], squadPlayers = []) {
+  const views = [
+    {
+      source: "manager",
+      sourceLabel: "Manager-Markt",
+      candidate: bestMarketCandidate(
+        marketCandidates.filter((candidate) => marketCandidateSource(candidate) !== "computer"),
+        squadPlayers
+      )
+    },
+    {
+      source: "computer",
+      sourceLabel: "Computer-Markt",
+      candidate: bestMarketCandidate(
+        marketCandidates.filter((candidate) => marketCandidateSource(candidate) === "computer"),
+        squadPlayers
+      )
+    }
+  ];
+
+  return views
+    .map((view) => {
+      const recommendation = recommendationFromMarketCandidate(view.candidate);
+      return recommendation
+        ? {
+            ...recommendation,
+            source: view.source,
+            sourceLabel: view.sourceLabel
+          }
+        : null;
+    })
+    .filter(Boolean);
 }
 
 function isNoBuyRecommendation(recommendation) {
@@ -223,19 +275,26 @@ async function main() {
   analysis.squadPlayers = currentData.squadPlayers || analysis.squadPlayers || [];
   analysis.lineupImage = currentData.lineupImage || analysis.lineupImage;
 
+  const buyViews = buildBuyViews(analysis.marketCandidates, analysis.squadPlayers);
+  if (buyViews.length) {
+    analysis.recommendations = analysis.recommendations || {};
+    analysis.recommendations.buyViews = buyViews;
+    analysis.recommendations.buy = buyViews[0];
+  }
+
   const marketNames = new Set((analysis.marketCandidates || []).map((candidate) => normalizeName(candidate.player)));
   const ownNames = new Set((currentData.squadPlayers || []).map((player) => normalizeName(player.name)));
   const buyName = normalizeName(analysis.recommendations?.buy?.player);
   const preferredMarketCandidate = bestMarketCandidate(analysis.marketCandidates, currentData.squadPlayers);
 
-  if (!analysis.marketCandidates?.length) {
+  if (!buyViews.length && !analysis.marketCandidates?.length) {
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buy = {
       title: "Keine Kaufempfehlung",
       reason: "Aktuell kein fremdes Marktangebot mit klarem Formschub oder Upgrade-Potenzial.",
       confidence: "hoch"
     };
-  } else if (buyName && (ownNames.has(buyName) || !marketNames.has(buyName))) {
+  } else if (!buyViews.length && buyName && (ownNames.has(buyName) || !marketNames.has(buyName))) {
     const marketBuy = recommendationFromMarketCandidate(preferredMarketCandidate);
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buy = marketBuy || {
@@ -245,7 +304,7 @@ async function main() {
     };
   }
 
-  if (analysis.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
+  if (!buyViews.length && analysis.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
     const marketBuy = recommendationFromMarketCandidate(preferredMarketCandidate);
     if (marketBuy) {
       analysis.recommendations = analysis.recommendations || {};
