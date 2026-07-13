@@ -71,6 +71,12 @@ function mergeRecommendations(previous, incoming, replacePrevious = false) {
     }
   });
 
+  if (Array.isArray(incoming?.buyViews) && incoming.buyViews.length) {
+    result.buyViews = incoming.buyViews;
+  } else if (Array.isArray(previous?.buyViews) && previous.buyViews.length) {
+    result.buyViews = previous.buyViews;
+  }
+
   return result;
 }
 
@@ -230,6 +236,23 @@ function buildBuyViews(marketCandidates = [], squadPlayers = []) {
         : null;
     })
     .filter(Boolean);
+}
+
+function hasMarketSignal(candidate) {
+  if (!candidate) return false;
+
+  return numericValue(candidate.livePoints) > 0
+    || numericValue(candidate.lastPoints) > 0
+    || numericValue(candidate.points) > 0
+    || numericValue(candidate.point) > 0
+    || numericValue(candidate.totalPoints) > 0
+    || numericValue(candidate.matchdayPoints) > 0
+    || candidate.marketTrend === "up"
+    || candidate.trend === "up";
+}
+
+function hasScoredMarketCandidates(marketCandidates = []) {
+  return (marketCandidates || []).some(hasMarketSignal);
 }
 
 function recommendationFromBudgetStatus(budgetStatus) {
@@ -553,8 +576,15 @@ async function mergeWithExisting(dataPath, incomingAnalysis) {
 
   if (screenType === "transfermarket" || isFullApiScreen(screenType)) {
     const squadPlayers = incoming.squadPlayers?.length ? incoming.squadPlayers : previous.squadPlayers || [];
-    const buyViews = buildBuyViews(marketCandidates, squadPlayers);
-    if (buyViews.length) {
+    const existingBuyViews = Array.isArray(recommendations.buyViews) ? recommendations.buyViews : [];
+    const buyViews = existingBuyViews.length
+      ? []
+      : hasScoredMarketCandidates(marketCandidates)
+      ? buildBuyViews(marketCandidates, squadPlayers)
+      : [];
+    if (existingBuyViews.length) {
+      recommendations.buy = existingBuyViews[0];
+    } else if (buyViews.length) {
       recommendations.buyViews = buyViews;
       recommendations.buy = buyViews[0];
     } else if (!hasUsefulRecommendation(recommendations.buy)) {

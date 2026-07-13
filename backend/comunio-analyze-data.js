@@ -210,6 +210,23 @@ function buildBuyViews(marketCandidates = [], squadPlayers = []) {
     .filter(Boolean);
 }
 
+function hasMarketSignal(candidate) {
+  if (!candidate) return false;
+
+  return numericValue(candidate.livePoints) > 0
+    || numericValue(candidate.lastPoints) > 0
+    || numericValue(candidate.points) > 0
+    || numericValue(candidate.point) > 0
+    || numericValue(candidate.totalPoints) > 0
+    || numericValue(candidate.matchdayPoints) > 0
+    || candidate.marketTrend === "up"
+    || candidate.trend === "up";
+}
+
+function hasScoredMarketCandidates(marketCandidates = []) {
+  return (marketCandidates || []).some(hasMarketSignal);
+}
+
 function isNoBuyRecommendation(recommendation) {
   const text = [
     recommendation?.player,
@@ -296,8 +313,21 @@ async function main() {
   analysis.squadPlayers = currentData.squadPlayers || analysis.squadPlayers || [];
   analysis.lineupImage = currentData.lineupImage || analysis.lineupImage;
 
-  const buyViews = buildBuyViews(analysis.marketCandidates, analysis.squadPlayers);
-  if (buyViews.length) {
+  const existingBuyViews = currentData.recommendations?.buyViews || [];
+  const existingBuy = currentData.recommendations?.buy;
+  const preservedSyncBuyViews = existingBuyViews.length > 0;
+  const buyViews = preservedSyncBuyViews
+    ? existingBuyViews
+    : hasScoredMarketCandidates(analysis.marketCandidates)
+      ? buildBuyViews(analysis.marketCandidates, analysis.squadPlayers)
+      : [];
+
+  if (preservedSyncBuyViews) {
+    analysis.recommendations = analysis.recommendations || {};
+    analysis.recommendations.buyViews = existingBuyViews;
+    analysis.recommendations.buy = existingBuyViews[0] || existingBuy;
+    console.log("Kaufempfehlung aus Sync beibehalten.");
+  } else if (buyViews.length) {
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buyViews = buyViews;
     analysis.recommendations.buy = buyViews[0];
@@ -308,14 +338,14 @@ async function main() {
   const buyName = normalizeName(analysis.recommendations?.buy?.player);
   const preferredMarketCandidate = bestMarketCandidate(analysis.marketCandidates, currentData.squadPlayers);
 
-  if (!buyViews.length && !analysis.marketCandidates?.length) {
+  if (!buyViews.length && !preservedSyncBuyViews && !analysis.marketCandidates?.length) {
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buy = {
       title: "Keine Kaufempfehlung",
       reason: "Aktuell kein fremdes Marktangebot mit klarem Formschub oder Upgrade-Potenzial.",
       confidence: "hoch"
     };
-  } else if (!buyViews.length && buyName && (ownNames.has(buyName) || !marketNames.has(buyName))) {
+  } else if (!buyViews.length && !preservedSyncBuyViews && buyName && (ownNames.has(buyName) || !marketNames.has(buyName))) {
     const marketBuy = recommendationFromMarketCandidate(preferredMarketCandidate);
     analysis.recommendations = analysis.recommendations || {};
     analysis.recommendations.buy = marketBuy || {
@@ -325,7 +355,7 @@ async function main() {
     };
   }
 
-  if (!buyViews.length && analysis.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
+  if (!buyViews.length && !preservedSyncBuyViews && analysis.marketCandidates?.length && isNoBuyRecommendation(analysis.recommendations?.buy)) {
     const marketBuy = recommendationFromMarketCandidate(preferredMarketCandidate);
     if (marketBuy) {
       analysis.recommendations = analysis.recommendations || {};
