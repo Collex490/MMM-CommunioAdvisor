@@ -109,22 +109,37 @@ function marketCandidateScore(candidate, squadPlayers = []) {
   const isUpgrade = weakestPoints !== 9999 && points > weakestPoints + 8;
   const isStrongUpgrade = weakestPoints !== 9999 && points > weakestPoints + 20;
   const hasSubstance = livePoints > 0 || lastPoints > 0 || points >= 20 || candidate.marketTrend === "up" || isUpgrade;
+  const positionBonus = position.includes("striker") || position.includes("sturm") || position.includes("forward")
+    ? 34
+    : position.includes("midfielder") || position.includes("mittel")
+      ? 24
+      : position.includes("defender") || position.includes("abwehr")
+        ? 10
+        : 0;
+  const seller = normalizeName([
+    candidate.seller,
+    candidate.sellerName,
+    candidate.owner,
+    candidate.ownerName,
+    candidate.provider
+  ].find(Boolean));
 
-  let score = (Math.min(points, 220) * 1.35) + (lastPoints * 16) + (livePoints * 18);
-  if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) score += 22;
-  if (position.includes("midfielder") || position.includes("mittel")) score += 14;
-  if (candidate.marketTrend === "up") score += 30;
-  if (isStrongUpgrade) score += 45;
-  else if (isUpgrade) score += 24;
-  if (points >= 40) score += 30;
-  else if (points >= 30) score += 18;
-  else if (points >= 20) score += 8;
-  if (price > 22000000) score -= 22;
-  else if (price > 18000000) score -= 14;
-  if (price > 13000000) score -= 8;
-  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 120;
-  if (points > 0 && points < 20 && !livePoints && !lastPoints && candidate.marketTrend !== "up") score -= 75;
-  if (!hasSubstance) score -= 30;
+  let score = (Math.min(points, 220) * 2.2) + (lastPoints * 22) + (livePoints * 28) + positionBonus;
+  if (candidate.marketTrend === "up") score += 45;
+  if (seller.includes("computer")) score += 6;
+  if (isStrongUpgrade) score += 65;
+  else if (isUpgrade) score += 34;
+  if (points >= 80) score += 70;
+  else if (points >= 60) score += 52;
+  else if (points >= 40) score += 36;
+  else if (points >= 30) score += 20;
+  else if (points >= 20) score += 10;
+  if (price > 25000000) score -= 42;
+  else if (price > 20000000) score -= 28;
+  else if (price > 15000000) score -= 14;
+  if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 180;
+  if (points > 0 && points < 20 && !livePoints && !lastPoints && candidate.marketTrend !== "up") score -= 125;
+  if (!hasSubstance) score -= 50;
   return score;
 }
 

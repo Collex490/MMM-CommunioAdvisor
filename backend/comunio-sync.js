@@ -905,9 +905,9 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
     .sort((a, b) => (a.points ?? 9999) - (b.points ?? 9999))[0];
   const positionBonus = (candidate) => {
     const position = normalizeText(firstValue(candidate.position, candidate.role, ""));
-    if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) return 22;
-    if (position.includes("midfielder") || position.includes("mittel")) return 14;
-    if (position.includes("defender") || position.includes("abwehr")) return 6;
+    if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) return 34;
+    if (position.includes("midfielder") || position.includes("mittel")) return 24;
+    if (position.includes("defender") || position.includes("abwehr")) return 10;
     return 0;
   };
 
@@ -923,17 +923,17 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
       const hasMomentum = livePoints >= 4 || lastPoints >= 6 || candidate.marketTrend === "up";
       const hasSubstance = livePoints > 0 || lastPoints > 0 || points >= 20 || candidate.marketTrend === "up" || isUpgrade;
       const priceValue = numberish(candidate.price) || 0;
-      const sellerBonus = normalizeText(candidate.seller) === "computer" ? 2 : 0;
-      const valuePenalty = priceValue > 22000000 ? 22 : priceValue > 18000000 ? 14 : priceValue > 13000000 ? 8 : 0;
-      const noOutputPenalty = !livePoints && !lastPoints && !points && candidate.marketTrend !== "up" ? 120 : 0;
-      const lowOutputPenalty = points > 0 && points < 20 && !livePoints && !lastPoints && candidate.marketTrend !== "up" ? 75 : 0;
-      const eliteBonus = points >= 40 ? 30 : points >= 30 ? 18 : points >= 20 ? 8 : 0;
-      const score = (livePoints * 18)
-        + (lastPoints * 16)
-        + (Math.min(points, 220) * 1.35)
+      const sellerBonus = normalizeText(candidate.seller).includes("computer") ? 6 : 0;
+      const valuePenalty = priceValue > 25000000 ? 42 : priceValue > 20000000 ? 28 : priceValue > 15000000 ? 14 : 0;
+      const noOutputPenalty = !livePoints && !lastPoints && !points && candidate.marketTrend !== "up" ? 180 : 0;
+      const lowOutputPenalty = points > 0 && points < 20 && !livePoints && !lastPoints && candidate.marketTrend !== "up" ? 125 : 0;
+      const eliteBonus = points >= 80 ? 70 : points >= 60 ? 52 : points >= 40 ? 36 : points >= 30 ? 20 : points >= 20 ? 10 : 0;
+      const score = (livePoints * 28)
+        + (lastPoints * 22)
+        + (Math.min(points, 220) * 2.2)
         + positionBonus(candidate)
-        + (candidate.marketTrend === "up" ? 30 : 0)
-        + (isStrongUpgrade ? 45 : isUpgrade ? 24 : 0)
+        + (candidate.marketTrend === "up" ? 45 : 0)
+        + (isStrongUpgrade ? 65 : isUpgrade ? 34 : 0)
         + eliteBonus
         + sellerBonus
         - valuePenalty;
