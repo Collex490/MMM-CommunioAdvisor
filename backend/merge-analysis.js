@@ -349,7 +349,7 @@ function mergeMarketCandidates(previousCandidates, incomingCandidates) {
       return true;
     })
     .sort((a, b) => Number(a.priority || 999) - Number(b.priority || 999))
-    .slice(0, 12);
+    .slice(0, 80);
 }
 
 function isTransferNewsScreen(screenType) {

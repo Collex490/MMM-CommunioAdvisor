@@ -883,7 +883,7 @@ function mapOffers(json) {
       };
     })
     .filter((item) => item.player && normalizeText(item.player) !== "computer" && !item.isOwnListing)
-    .slice(0, 12);
+    .slice(0, 80);
 }
 
 function mapOffersFromSources(sources) {
@@ -1876,6 +1876,12 @@ function buildAnalysis(raw, generatedLineupImage) {
       return pointsA - pointsB || valueB - valueA;
     })[0] || highValueCandidate || lowestPointPlayer || squadPlayers[0];
   const buyViews = buildBuyViews(marketCandidates, squadPlayers);
+  const buyDebug = buyViews
+    .map((view) => `${view.title || "Kaufempfehlung"}: ${view.player}`)
+    .join(" | ");
+  if (buyDebug) {
+    console.log(`Kaufempfehlungen: ${buyDebug}`);
+  }
 
   return {
     league: "WM Comunio",
