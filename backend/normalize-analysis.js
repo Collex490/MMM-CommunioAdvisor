@@ -25,8 +25,20 @@ function normalizeRecommendation(value, fallbackTitle) {
     player: item.player,
     title: item.title || item.assessment || fallbackTitle,
     reason: item.reason || item.detail || item.assessment || "Keine Begründung erkannt.",
-    confidence: item.confidence || "mittel"
+    confidence: item.confidence || "mittel",
+    source: item.source,
+    sourceLabel: item.sourceLabel
   };
+}
+
+function normalizeBuyViews(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => normalizeRecommendation(item, "Kaufempfehlung"))
+    .filter(hasRecommendationContent);
 }
 
 function normalizeRumorKitchen(value) {
@@ -160,6 +172,11 @@ function normalizeAnalysis(analysis) {
     risk: normalizeRecommendation(recommendations.risk, "Startelf-Risiko offen"),
     budget: normalizeRecommendation(recommendations.budget, "Budget-Hinweis offen")
   };
+  const buyViews = normalizeBuyViews(recommendations.buyViews);
+  if (buyViews.length) {
+    normalizedRecommendations.buyViews = buyViews;
+    normalizedRecommendations.buy = buyViews[0];
+  }
   enhanceRecommendations(normalizedRecommendations, squadInsights, marketCandidates, source.screenType);
 
   return {
@@ -234,6 +251,11 @@ function normalizeMarketCandidates(value) {
         player: item.player || item.name || item.title || "",
         price: item.price || item.marketValue || item.value || "",
         seller: item.seller || item.club || "",
+        position: item.position || item.role || "",
+        marketTrend: item.marketTrend || item.trend || "",
+        points: normalizeNumberLike(item.points),
+        livePoints: normalizeNumberLike(item.livePoints),
+        lastPoints: normalizeNumberLike(item.lastPoints),
         reason: item.reason || item.detail || item.assessment || "Sichtbarer Kandidat auf dem Transfermarkt.",
         priority: normalizeNumberLike(item.priority) ?? index + 1
       };

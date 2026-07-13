@@ -1854,8 +1854,16 @@ function buildAnalysis(raw, generatedLineupImage) {
     .map((page) => page.json);
   const squadPlayers = mapPlayers(squad);
   const ownPlayerNames = new Set(squadPlayers.map((player) => normalizeText(player.name)));
+  const transferTicker = newestTransferTicker(news);
+  const boughtPlayerNames = new Set(
+    transferTicker
+      .filter((item) => normalizeText(item.action).includes("gekauft"))
+      .map((item) => normalizeText(item.player))
+      .filter(Boolean)
+  );
   const marketCandidates = mapOffersFromSources(marketSources)
-    .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller));
+    .filter((item) => !ownPlayerNames.has(normalizeText(item.player)) && !isOwnClubName(item.seller))
+    .filter((item) => !boughtPlayerNames.has(normalizeText(item.player)));
   const standings = mapStandingsFromRaw(raw);
   const ownTeam = standings.find((team) => team.isUserClub);
   const budget = findBudgetFromRaw(raw);
@@ -1920,7 +1928,7 @@ function buildAnalysis(raw, generatedLineupImage) {
     },
     marketCandidates,
     standings,
-    transferTicker: newestTransferTicker(news),
+    transferTicker,
     livePlayers: mapLivePlayers(raw),
     budgetStatus: budget ? { amount: budget, note: "Aus Comunio-API erkannt" } : {},
     squadPlayers: squadPlayers.map((player) => ({
