@@ -107,17 +107,23 @@ function marketCandidateScore(candidate, squadPlayers = []) {
   const weakestPoints = ownPointValues.length ? Math.min(...ownPointValues) : 9999;
 
   const isUpgrade = weakestPoints !== 9999 && points > weakestPoints + 8;
+  const isStrongUpgrade = weakestPoints !== 9999 && points > weakestPoints + 20;
   const hasSubstance = livePoints > 0 || lastPoints > 0 || points >= 20 || candidate.marketTrend === "up" || isUpgrade;
 
-  let score = Math.min(points, 220) + (lastPoints * 12) + (livePoints * 14);
+  let score = (Math.min(points, 220) * 1.35) + (lastPoints * 16) + (livePoints * 18);
   if (position.includes("striker") || position.includes("sturm") || position.includes("forward")) score += 22;
   if (position.includes("midfielder") || position.includes("mittel")) score += 14;
   if (candidate.marketTrend === "up") score += 30;
-  if (isUpgrade) score += 28;
-  if (price > 18000000) score -= 14;
+  if (isStrongUpgrade) score += 45;
+  else if (isUpgrade) score += 24;
+  if (points >= 40) score += 30;
+  else if (points >= 30) score += 18;
+  else if (points >= 20) score += 8;
+  if (price > 22000000) score -= 22;
+  else if (price > 18000000) score -= 14;
   if (price > 13000000) score -= 8;
   if (!livePoints && !lastPoints && !points && candidate.marketTrend !== "up") score -= 120;
-  if (points > 0 && points < 10 && !livePoints && !lastPoints && candidate.marketTrend !== "up") score -= 45;
+  if (points > 0 && points < 20 && !livePoints && !lastPoints && candidate.marketTrend !== "up") score -= 75;
   if (!hasSubstance) score -= 30;
   return score;
 }

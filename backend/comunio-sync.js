@@ -919,19 +919,22 @@ function buildBuyRecommendation(marketCandidates, squadPlayers) {
       const points = numberish(candidate.points) ?? 0;
       const weakestPoints = weakestPlayer?.points ?? 0;
       const isUpgrade = points > weakestPoints + 8;
+      const isStrongUpgrade = points > weakestPoints + 20;
       const hasMomentum = livePoints >= 4 || lastPoints >= 6 || candidate.marketTrend === "up";
       const hasSubstance = livePoints > 0 || lastPoints > 0 || points >= 20 || candidate.marketTrend === "up" || isUpgrade;
       const priceValue = numberish(candidate.price) || 0;
-      const sellerBonus = normalizeText(candidate.seller) === "computer" ? 4 : 0;
-      const valuePenalty = priceValue > 18000000 ? 14 : priceValue > 13000000 ? 8 : 0;
+      const sellerBonus = normalizeText(candidate.seller) === "computer" ? 2 : 0;
+      const valuePenalty = priceValue > 22000000 ? 22 : priceValue > 18000000 ? 14 : priceValue > 13000000 ? 8 : 0;
       const noOutputPenalty = !livePoints && !lastPoints && !points && candidate.marketTrend !== "up" ? 120 : 0;
-      const lowOutputPenalty = points > 0 && points < 10 && !livePoints && !lastPoints && candidate.marketTrend !== "up" ? 45 : 0;
-      const score = (livePoints * 14)
-        + (lastPoints * 12)
-        + Math.min(points, 220)
+      const lowOutputPenalty = points > 0 && points < 20 && !livePoints && !lastPoints && candidate.marketTrend !== "up" ? 75 : 0;
+      const eliteBonus = points >= 40 ? 30 : points >= 30 ? 18 : points >= 20 ? 8 : 0;
+      const score = (livePoints * 18)
+        + (lastPoints * 16)
+        + (Math.min(points, 220) * 1.35)
         + positionBonus(candidate)
         + (candidate.marketTrend === "up" ? 30 : 0)
-        + (isUpgrade ? 28 : 0)
+        + (isStrongUpgrade ? 45 : isUpgrade ? 24 : 0)
+        + eliteBonus
         + sellerBonus
         - valuePenalty;
 
